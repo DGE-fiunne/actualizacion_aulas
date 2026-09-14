@@ -3,87 +3,328 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <link rel="preconnect" href="https://googleapis.com">
-  <link rel="preconnect" href="https://gstatic.com" crossorigin>
-  <link href="https://googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-  <!-- SDK de Supabase -->
-  <script src="https://jsdelivr.net"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+  
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     * { box-sizing: border-box; }
     :root {
-      --bg-main: #0f172a; --bg-card: #1e293b; --bg-input: #111827;
-      --border-color: rgba(255, 255, 255, 0.08); --text-main: #f8fafc;
-      --text-muted: #94a3b8; --accent-green: #22c55e; --radius: 12px;
-      --font-body: 'Inter', system-ui, -apple-system, sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+      --bg-main: #0f172a;
+      --bg-card: #1e293b;
+      --bg-input: #111827;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-green: #22c55e;
+      --radius: 12px;
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
     }
-    body { font-family: var(--font-body); background: var(--bg-main); color: var(--text-main); margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; }
-    .header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 12px 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); border-bottom: 1px solid var(--border-color); gap: 12px; position: sticky; top: 0; z-index: 100; }
-    .brand-container { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .brand-container img { height: 40px; width: auto; object-fit: contain; }
-    .titulo { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); }
-    .reloj { font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: var(--accent-green); white-space: nowrap; background: rgba(34, 197, 94, 0.1); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(34, 197, 94, 0.2); }
-    .container { width: 100%; max-width: 100%; margin: 0 auto; padding: 16px 24px; flex: 1; }
-    .seccion-contenedor { background: var(--bg-card); border-radius: var(--radius); overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); }
-    .panel-seccion { background: var(--bg-input); padding: 16px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: center; border-bottom: 1px solid var(--border-color); }
-    .filter-group { display: flex; flex-direction: column; gap: 6px; }
-    .filter-group label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
-    select { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 14px; font-family: var(--font-body); background: var(--bg-card); color: var(--text-main); outline: none; transition: all 0.2s ease; cursor: pointer; }
-    select:focus { border-color: var(--accent-green); box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2); }
-    .table-responsive { width: 100%; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th { background: rgba(255, 255, 255, 0.02); padding: 14px 20px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color); }
-    td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); font-size: 14px; vertical-align: middle; }
-    tr:hover { background: rgba(255, 255, 255, 0.02); }
-    .materia-info { display: flex; flex-direction: column; gap: 2px; }
-    .materia-nombre { font-weight: 600; color: var(--text-main); font-size: 15px; }
-    .dia-subtitulo { font-size: 12px; color: var(--text-muted); }
-    .badge-tipo { display: inline-block; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
-    .badge-clase { background: rgba(245, 145, 39, 0.15); color: #F59127; border: 1px solid rgba(245, 145, 39, 0.3); }
-    .badge-examen { background: rgba(42, 157, 143, 0.15); color: #2A9D8F; border: 1px solid rgba(42, 157, 143, 0.3); }
-    .badge-contracursada { background: rgba(47, 195, 210, 0.15); color: #2fc3d2; border: 1px solid rgba(47, 195, 210, 0.3); }
-    .badge-evento { background: rgba(46, 212, 122, 0.15); color: #2ed47a; border: 1px solid rgba(46, 212, 122, 0.3); }
-    .edificio-texto { color: var(--text-muted); font-size: 14px; }
-    .aula { background: #2A9D8F; color: #ffffff; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; white-space: nowrap; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-main);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-card);
+      padding: 12px 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      border-bottom: 1px solid var(--border-color);
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .brand-container img {
+      height: 40px;
+      width: auto;
+      object-fit: contain;
+    }
+    .titulo {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-main);
+    }
+
+    .reloj {
+      font-size: 20px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--accent-green);
+      white-space: nowrap;
+      background: rgba(34, 197, 94, 0.1);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 16px 24px;
+      flex: 1;
+    }
+    .seccion-contenedor {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+    }
+    .panel-seccion {
+      background: var(--bg-input);
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .filter-group label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 14px;
+      font-family: var(--font-body);
+      background: var(--bg-card);
+      color: var(--text-main);
+      outline: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    select:focus {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.02);
+      padding: 14px 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    td {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .materia-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .materia-nombre {
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 15px;
+    }
+
+    .dia-subtitulo {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .badge-tipo {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .badge-clase { background: rgba(245, 145, 39, 0.15); color: #2A9D8F; border: 1px solid rgba(245, 145, 39, 0.3); }
+    .badge-examen { background: rgba(42, 157, 143, 0.15); color: #F9F7F3; border: 1px solid rgba(42, 157, 143, 0.15); }
+    .badge-contracursada { background: rgba(47, 195, 210, 0.15); color: #2A9D8F; border: 1px solid rgba(47, 195, 210, 0.3); }
+    .badge-evento { background: rgba(46, 212, 122, 0.15); color: #2A9D8F; border: 1px solid rgba(46, 212, 122, 0.3); }
+
+    .edificio-texto {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .aula {
+      background: #2A9D8F;
+      color: #ffffff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      white-space: nowrap;
+      display: inline-block;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
     .aula-examen { background: #2ed47a; color: #000000; }
     .aula-contracursada { background: #2fc3d2; color: #000000; }
     .aula-evento { background: #2ed47a; color: #000000; }
-    .horario-texto { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text-main); }
-    .sin-resultados { text-align: center; padding: 40px 20px; color: var(--text-muted); font-style: italic; }
-    #loader { font-size: 12px; color: var(--accent-green); visibility: hidden; }
+    .horario-texto {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .sin-resultados {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    #loader {
+      font-size: 12px;
+      color: var(--accent-green);
+      visibility: hidden;
+    }
+
     .updating #loader { visibility: visible; }
-    .btn-config { background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); font-size: 18px; padding: 8px 12px; border-radius: var(--radius); cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
-    .btn-config:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--accent-green); transform: rotate(30deg); }
 
     @media (max-width: 768px) {
-      .header { padding: 10px 16px; } .brand-container img { height: 32px; } .titulo { font-size: 13px; } .reloj { font-size: 14px; padding: 4px 10px; } .container { padding: 10px; } .panel-seccion { grid-template-columns: 1fr 1fr; padding: 12px; gap: 10px; } .seccion-contenedor { border-radius: 10px; }
-      table, thead, tbody { display: block; width: 100%; } thead { display: none; }
-      tr { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "materia tipo" "edificio edificio" "horario aula"; column-gap: 12px; row-gap: 8px; background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 14px; }
-      tr:last-child { border-bottom: none; } td { padding: 0; border-bottom: none; }
-      td:nth-child(1) { grid-area: materia; align-self: center; } td:nth-child(1) .materia-nombre { font-size: 14px; } td:nth-child(1) .dia-subtitulo { font-size: 11px; }
-      td:nth-child(2) { grid-area: tipo; justify-self: end; align-self: start; } td:nth-child(3) { grid-area: edificio; } td:nth-child(3) .edificio-texto { font-size: 12px; }
-      td:nth-child(4) { grid-area: aula; justify-self: end; align-self: center; } td:nth-child(5) { grid-area: horario; align-self: center; }
+      .header { padding: 10px 16px; }
+      .brand-container img { height: 32px; }
+      .titulo { font-size: 13px; }
+      .reloj { font-size: 14px; padding: 4px 10px; }
+      .container { padding: 10px; }
+      .panel-seccion {
+        grid-template-columns: 1fr 1fr;
+        padding: 12px;
+        gap: 10px;
+      }
+      .seccion-contenedor { border-radius: 10px; }
+      
+      table, thead, tbody { display: block; width: 100%; }
+      thead { display: none; }
+      tr {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+          "materia tipo"
+          "edificio edificio"
+          "horario aula";
+        column-gap: 12px;
+        row-gap: 8px;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border-color);
+        padding: 14px;
+      }
+      tr:last-child { border-bottom: none; }
+      tr:has(td.sin-resultados) { display: block; }
+      td { padding: 0; border-bottom: none; }
+
+      td:nth-child(1) { grid-area: materia; align-self: center; }
+      td:nth-child(1) .materia-nombre { font-size: 14px; }
+      td:nth-child(1) .dia-subtitulo { font-size: 11px; }
+      td:nth-child(2) { grid-area: tipo; justify-self: end; align-self: start; }
+      td:nth-child(3) { grid-area: edificio; }
+      td:nth-child(3) .edificio-texto { font-size: 12px; }
+      td:nth-child(4) { grid-area: aula; justify-self: end; align-self: center; }
+      td:nth-child(5) { grid-area: horario; align-self: center; }
     }
-    @media (max-width: 480px) { .panel-seccion { grid-template-columns: 1fr; } }
+
+    @media (max-width: 480px) {
+     .panel-seccion { grid-template-columns: 1fr; }
+    }
+
+    .btn-config {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 18px;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-config:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent-green);
+      transform: rotate(30deg);
+    }
   </style>
 </head>
 <body>
 
   <div class="header">
     <div class="brand-container">
-      <img src="https://iili.io" alt="Logo">
+      <img src="https://iili.io/ndEnhRj.md.png" alt="Logo">
       <div class="titulo" id="txt-header">Distribución de Aulas</div>
     </div>
-    <div id="loader">&#10004;</div>
+    <div id="loader">&#10004</div>
     
     <div style="display: flex; align-items: center; gap: 12px;">
-      <button class="btn-config" onclick="abrirModalAdmin()" title="Acceso Administrador">⚙️</button>
+      <button class="btn-config" onclick="abrirModalAdmin()" title="Acceso Administrador">
+        ⚙️
+      </button>
       <div class="reloj" id="reloj">--:--</div>
     </div>
   </div>
 
   <div class="container">
     <div id="cont-aulas" class="seccion-contenedor" style="display:none;">
+      
       <div class="panel-seccion">
         <div class="filter-group">
           <label>Categoría</label>
@@ -91,14 +332,20 @@
             <option value="TODOS">Todas las categorías</option>
           </select>
         </div>
+
         <div class="filter-group">
           <label>Día</label>
           <select id="fDia" onchange="renderizarUI(datosCache)">
             <option value="TODOS">Todos los días</option>
-            <option value="Lunes">Lunes</option><option value="Martes">Martes</option><option value="Miércoles">Miércoles</option>
-            <option value="Jueves">Jueves</option><option value="Viernes">Viernes</option><option value="Sábado">Sábado</option>
+            <option value="Lunes">Lunes</option>
+            <option value="Martes">Martes</option>
+            <option value="Miércoles">Miércoles</option>
+            <option value="Jueves">Jueves</option>
+            <option value="Viernes">Viernes</option>
+            <option value="Sábado">Sábado</option>
           </select>
         </div>
+
         <div class="filter-group">
           <label>Edificio</label>
           <select id="fEdif" onchange="renderizarUI(datosCache)">
@@ -107,12 +354,13 @@
             <option value="Electromecánica - Av. Castelli">Electromecánica - Av. Castelli</option>
           </select>
         </div>
+
         <div class="filter-group">
           <label>Turno</label>
           <select id="fTurno" onchange="renderizarUI(datosCache)">
             <option value="TODOS">Todos los turnos</option>
             <option value="MAÑANA">Mañana</option>
-            <option value="TARDE">Tarde / Noche</option>
+            <option value="TARDE">Tarde / Noche </option>
           </select>
         </div>
       </div>
@@ -131,11 +379,12 @@
           <tbody id="tabAulas"></tbody>
         </table>
       </div>
+
     </div>
   </div>
 
   <script>
-    // CREDENCIALES DE CONFIGURACIÓN DE SUPABASE
+    // Configuración de Supabase
     const SUPABASE_URL = "https://ardnucavibingeahychm.supabase.co";
     const SUPABASE_KEY = "sb_publishable_9Ca20DGAPM8bZHvGUxinaw_lUfEK4TX";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -145,3 +394,247 @@
     function actualizarReloj() {
       const ahora = new Date();
       const dias = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+      let h = ahora.getHours().toString().padStart(2, "0");
+      let m = ahora.getMinutes().toString().padStart(2, "0");
+      let s = ahora.getSeconds().toString().padStart(2, "0");
+      document.getElementById("reloj").innerHTML = `${dias[ahora.getDay()]} ${h}:${m}:${s}`;
+    }
+
+    function cumpleTurno(horarioStr, turnoFiltro) {
+      if (turnoFiltro === "TODOS" || !horarioStr) return true;
+      const match = horarioStr.match(/(\d{1,2}):(\d{2})/);
+      if (!match) return false;
+      const h = parseInt(match[1]);
+      const min = parseInt(match[2]);
+      const totalMinutos = h * 60 + min;
+
+      if (turnoFiltro === "MAÑANA") return (totalMinutos >= 450 && totalMinutos <= 810);
+      if (turnoFiltro === "TARDE") return (totalMinutos > 810 && totalMinutos <= 1380);
+      return true;
+    }
+
+    function minutosAHHMM(min) {
+      const h = Math.floor(min / 60).toString().padStart(2, "0");
+      const m = (min % 60).toString().padStart(2, "0");
+      return `${h}:${m}`;
+    }
+
+    function extraerRangoHorario(horarioStr) {
+      if (!horarioStr) return null;
+      const matches = [...horarioStr.matchAll(/(\d{1,2}):(\d{2})/g)];
+      if (matches.length === 0) return null;
+      const minutos = matches.map(m => parseInt(m[1]) * 60 + parseInt(m[2]));
+      return { inicio: Math.min(...minutos), fin: Math.max(...minutos) };
+    }
+
+    function agruparMaterias(lista) {
+      const agrupado = {};
+      lista.forEach(item => {
+        const clave = `${item.materia}-${item.dia}-${item.edificio}-${item.tipo}`;
+        const rango = extraerRangoHorario(item.horario);
+
+        if (!agrupado[clave]) {
+          agrupado[clave] = {
+            ...item,
+            aulas: item.aula ? [item.aula] : [],
+            horaInicio: rango ? rango.inicio : null,
+            horaFin: rango ? rango.fin : null
+          };
+        } else {
+          if (item.aula && !agrupado[clave].aulas.includes(item.aula)) {
+            agrupado[clave].aulas.push(item.aula);
+          }
+          if (rango) {
+            if (agrupado[clave].horaInicio === null || rango.inicio < agrupado[clave].horaInicio) {
+              agrupado[clave].horaInicio = rango.inicio;
+            }
+            if (agrupado[clave].horaFin === null || rango.fin > agrupado[clave].horaFin) {
+              agrupado[clave].horaFin = rango.fin;
+            }
+          }
+        }
+      });
+
+      return Object.values(agrupado).map(m => ({
+        ...m,
+        aulaFormateada: m.aulas.sort().join(" - "),
+        horario: (m.horaInicio !== null && m.horaFin !== null)
+          ? `${minutosAHHMM(m.horaInicio)} - ${minutosAHHMM(m.horaFin)}`
+          : m.horario
+      }));
+    }
+
+    function filtrarMaterias(lista, tSelTipo, dSel, eSel, tSel) {
+      return lista.filter(m =>
+        (tSelTipo === "TODOS" || m.tipo === tSelTipo) &&
+        (eSel === "TODOS" || m.edificio === eSel) &&
+        (dSel === "TODOS" || m.dia === dSel) &&
+        cumpleTurno(m.horario, tSel)
+      );
+    }
+
+    function ordenarMaterias(lista) {
+      const ordenDias = { "Lunes": 1, "Martes": 2, "Miércoles": 3, "Jueves": 4, "Viernes": 5, "Sábado": 6, "Domingo": 7 };
+      return lista.sort((a, b) => {
+        const dA = ordenDias[a.dia] || 99;
+        const dB = ordenDias[b.dia] || 99;
+        if (dA !== dB) return dA - dB;
+        return (a.horaInicio ?? 0) - (b.horaInicio ?? 0);
+      });
+    }
+
+    function obtenerEstiloTipo(tipo) {
+      switch (tipo) {
+        case "EXAMEN":
+          return { claseAula: "aula aula-examen", claseBadge: "badge-tipo badge-examen", textoBadge: "EXAMEN" };
+        case "CONTRACURSADA":
+          return { claseAula: "aula aula-contracursada", claseBadge: "badge-tipo badge-contracursada", textoBadge: "CONTRACURSADA" };
+        case "EVENTO/CAPACITACIÓN":
+        case "EVENTO":
+          return { claseAula: "aula aula-evento", claseBadge: "badge-tipo badge-evento", textoBadge: "EVENTO" };
+        default:
+          return { claseAula: "aula", claseBadge: "badge-tipo badge-clase", textoBadge: "CLASE REGULAR" };
+      }
+    }
+
+    function renderizarFilas(tbody, materiasAgrupadas) {
+      tbody.innerHTML = "";
+
+      if (materiasAgrupadas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="sin-resultados">No hay asignaciones para los filtros seleccionados.</td></tr>`;
+        return;
+      }
+
+      materiasAgrupadas.forEach(m => {
+        const estilo = obtenerEstiloTipo(m.tipo);
+        const aulaHTML = `<span class="${estilo.claseAula}">AULA ${m.aulaFormateada}</span>`;
+
+        const fila = `
+          <tr>
+            <td>
+              <div class="materia-info">
+                <span class="materia-nombre">${m.materia}</span>
+                <span class="dia-subtitulo">${m.dia}</span>
+              </div>
+            </td>
+            <td><span class="${estilo.claseBadge}">${estilo.textoBadge}</span></td>
+            <td><span class="edificio-texto">${m.edificio}</span></td>
+            <td>${aulaHTML}</td>
+            <td><span class="horario-texto">${m.horario}</span></td>
+          </tr>`;
+        tbody.innerHTML += fila;
+      });
+    }
+
+    function armarFiltroTipo(config) {
+      const sel = document.getElementById("fTipo");
+      const valorActual = sel.value;
+      sel.innerHTML = `<option value="TODOS">Todas las categorías</option>`;
+      
+      if (config.CLASE_REGULAR !== false) sel.innerHTML += `<option value="CLASE_REGULAR">Clases Regulares</option>`;
+      if (config.EXAMEN !== false) sel.innerHTML += `<option value="EXAMEN">Exámenes</option>`;
+      if (config.CONTRACURSADA !== false) sel.innerHTML += `<option value="CONTRACURSADA">Contracursadas</option>`;
+      if (config["EVENTO/CAPACITACIÓN"] !== false && config.EVENTO !== false) sel.innerHTML += `<option value="EVENTO/CAPACITACIÓN">Eventos / Capacitaciones</option>`;
+
+      if ([...sel.options].some(o => o.value === valorActual)) {
+        sel.value = valorActual;
+      }
+    }
+
+    function renderizarUI(res) {
+      if (!res) return;
+
+      const hayAlgoHabilitado = Object.values(res.config).some(v => v === true);
+      document.getElementById("cont-aulas").style.display = hayAlgoHabilitado ? "block" : "none";
+      if (!hayAlgoHabilitado) return;
+
+      armarFiltroTipo(res.config);
+
+      const tSelTipo = document.getElementById("fTipo").value;
+      const dSel = document.getElementById("fDia").value;
+      const eSel = document.getElementById("fEdif").value;
+      const tSel = document.getElementById("fTurno").value;
+
+      const elemHeader = document.getElementById("txt-header");
+      if (elemHeader) {
+        const textoCuatri = res.cuatrimestreActivo ? ` (${res.cuatrimestreActivo}° Cuatrimestre)` : "";
+        const textoEdificio = eSel === "TODOS" ? "" : ` - ${eSel}`;
+        elemHeader.innerText = `Distribución de Aulas${textoCuatri}${textoEdificio}`;
+      }
+
+      const filtradas = filtrarMaterias(res.materias, tSelTipo, dSel, eSel, tSel);
+      const agrupadas = ordenarMaterias(agruparMaterias(filtradas));
+
+      renderizarFilas(document.getElementById("tabAulas"), agrupadas);
+    }
+
+    async function cargar() {
+      document.body.classList.add('updating');
+
+      try {
+        // Cargar Aulas desde Supabase
+        const { data: dataAulas, error: errAulas } = await supabaseClient
+          .from('aulas')
+          .select('*');
+
+        if (errAulas) throw errAulas;
+
+        // Cargar Configuración desde Supabase
+        const { data: dataConfig, error: errConfig } = await supabaseClient
+          .from('configuracion')
+          .select('*');
+
+        if (errConfig) throw errConfig;
+
+        let cuatriActivo = "1";
+        let visibilidad = {
+          "CLASE_REGULAR": true,
+          "EXAMEN": true,
+          "CONTRACURSADA": true,
+          "EVENTO/CAPACITACIÓN": true
+        };
+
+        dataConfig.forEach(item => {
+          if (item.clave === 'cuatrimestre_activo') cuatriActivo = item.valor;
+          if (item.clave === 'visibilidad_categorias') visibilidad = item.valor;
+        });
+
+        // Adaptar los resultados al formato esperado por la interfaz
+        const materiasFormateadas = (dataAulas || []).map(item => ({
+          materia: item.materia,
+          dia: item.dia,
+          edificio: item.edificio,
+          aula: item.aula,
+          tipo: item.categoria,
+          horario: (item.horario_inicio && item.horario_fin) ? `${item.horario_inicio} - ${item.horario_fin}` : '',
+          cuatrimestre: item.cuatrimestre
+        }));
+
+        datosCache = {
+          cuatrimestreActivo: cuatriActivo,
+          config: visibilidad,
+          materias: materiasFormateadas
+        };
+
+        renderizarUI(datosCache);
+      } catch (err) {
+        console.error("Error al cargar los datos desde Supabase:", err);
+      } finally {
+        document.body.classList.remove('updating');
+      }
+    }
+
+    window.onload = () => {
+      actualizarReloj();
+      setInterval(actualizarReloj, 1000);
+
+      cargar();
+      setInterval(cargar, 15000);
+    };
+
+    function abrirModalAdmin() {
+      window.open("admin.html", "_blank");
+    }
+  </script>
+</body>
+</html>
