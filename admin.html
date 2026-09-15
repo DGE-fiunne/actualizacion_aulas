@@ -811,7 +811,8 @@ async function guardar() {
   const nombreEdificio = document.getElementById('edificio').value;
   const cuatrimestre = document.getElementById('cuatrimestre') ? document.getElementById('cuatrimestre').value : "1";
   
-  let materiaTexto = (categoria.startsWith("EVENTO")) ? document.getElementById('tituloEvento').value.trim() : document.getElementById('materia').value;
+  const esEvento = categoria.startsWith("EVENTO");
+  let materiaTexto = esEvento ? document.getElementById('tituloEvento').value.trim() : document.getElementById('materia').value;
   if (!materiaTexto) return alert("Escribí o seleccioná una materia/evento");
 
   const aulas = Array.from(document.querySelectorAll('.aula-in')).map(i => i.value.trim()).filter(Boolean);
@@ -830,7 +831,7 @@ async function guardar() {
   let materia_id = null;
   let carrera_id = null;
 
-  if (!categoria.startsWith("EVENTO")) {
+  if (!esEvento) {
     const matObj = listaMateriasCompleta.find(m => m.nombre === materiaTexto);
     if (matObj) {
       materia_id = matObj.id;
@@ -846,11 +847,10 @@ async function guardar() {
 
   const edificio_id = edifData ? edifData.id : null;
 
-  // 1. Si se trata de una edición, buscamos los registros anteriores de ese grupo y los eliminamos
+  // Si estamos editando, eliminamos los registros previos del grupo
   if (idEditar) {
     const registroBase = todasLasAulas.find(x => String(x.id).trim() === String(idEditar).trim());
     if (registroBase) {
-      // Identificar todos los IDs que pertenecen a este mismo grupo
       const idsGrupo = todasLasAulas
         .filter(x => 
           x.dia === registroBase.dia &&
@@ -869,7 +869,7 @@ async function guardar() {
     }
   }
 
-  // 2. Preparamos el nuevo arreglo de registros sin 'id' duplicado para hacer un INSERT limpio
+  // Preparamos los registros guardando explícitamente el nombre del evento en 'materia'
   const registrosNuevos = [];
   aulas.forEach(aula => {
     listaHorarios.forEach(h => {
@@ -877,6 +877,7 @@ async function guardar() {
         dia,
         categoria,
         cuatrimestre,
+        materia: esEvento ? materiaTexto : null, // ✅ Se guarda el texto del evento directamente
         materia_id,
         carrera_id,
         edificio_id,
@@ -888,7 +889,6 @@ async function guardar() {
     });
   });
 
-  // 3. Insertar los nuevos datos en Supabase
   const { error } = await supabase.from('distribucion_aulas').insert(registrosNuevos);
 
   if (error) {
