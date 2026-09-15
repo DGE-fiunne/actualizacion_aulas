@@ -493,7 +493,7 @@ function filaVacia(texto) {
   return `<tr class="empty-row"><td colspan="6">${texto}</td></tr>`;
 }
 
-unction crearFila(grupo) {
+function crearFila(grupo) {
   const aulasTexto = [...grupo.aulas].join(" - ");
   const horariosTexto = grupo.horarios.join("<br>");
   const idsParam = grupo.ids.join(",");
@@ -711,7 +711,7 @@ function renderTablas() {
   document.getElementById('tablaEventos').innerHTML = ev.length ? ev.map(crearFila).join("") : filaVacia("Sin eventos");
 }
 
-unction prepararEdicion(idsGrupoStr) {
+function prepararEdicion(idsGrupoStr) {
   if (!idsGrupoStr) return alert("Registro no encontrado");
 
   // Obtener la lista de IDs que pertenecen a este grupo
