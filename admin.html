@@ -103,17 +103,40 @@
   .cat-container.visible { display:block; }
   @keyframes fadeIn { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
 
+  /* Estilos para Modal de Autenticación por Contraseña Única */
+  #modalAuth { z-index: 2000; background: #0f172a; backdrop-filter: blur(10px); }
+  .auth-box { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 32px; width: 100%; max-width: 380px; text-align: center; color: white; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+  .auth-box h3 { color: white; margin-bottom: 8px; font-size: 20px; }
+  .auth-box p { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+  .auth-box input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: #111827; color: white; text-align: center; font-size: 14px; margin-bottom: 12px; outline: none; }
+  .auth-box input:focus { border-color: #22c55e; }
+  .auth-box button { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #22c55e; color: #000; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s; }
+  .auth-box button:hover { opacity: 0.9; }
+  #msgErrorAuth { color: #ef4444; font-size: 12px; margin-bottom: 12px; display: none; }
+
   @media (max-width:900px) { .categorias-botones { grid-template-columns:repeat(2,1fr); } }
   @media (max-width:600px) { .main { padding:10px 14px; } .form-grid-2 { grid-template-columns:1fr; } .top-navbar { padding:10px 16px; } }
 </style>
 </head>
 <body>
 
+  <!-- MODAL DE ACCESO POR CONTRASEÑA -->
+  <div id="modalAuth" class="modal-overlay open">
+    <div class="auth-box">
+      <h3>⚙️ Acceso Administrador</h3>
+      <p>Ingresá la contraseña para acceder al panel de gestión.</p>
+      <input type="password" id="passInput" placeholder="Contraseña..." onkeydown="if(event.key==='Enter') verificarPassword()">
+      <div id="msgErrorAuth">Contraseña incorrecta</div>
+      <button onclick="verificarPassword()">Ingresar al Panel</button>
+    </div>
+  </div>
+
   <header class="top-navbar">
     <div class="brand-container">
       <img src="https://iili.io/ndEnhRj.md.png" class="brand-logo" alt="Logo">
       <span class="brand-title">Gestor de Aulas | Panel Administrativo</span>
     </div>
+    <button class="btn btn-cancel" style="background: rgba(255,255,255,0.1); color: white; border: none;" onclick="cerrarSesion()">Cerrar Sesión</button>
   </header>
 
   <div class="content-col">
@@ -336,6 +359,55 @@ let todasLasAulas = [];
 let listaMateriasCompleta = [];
 let cuatrimestreActivo = "1";
 
+// --- VALIDACIÓN DE CONTRASEÑA ---
+async function verificarPassword() {
+  const passIngresada = document.getElementById("passInput").value.trim();
+  const msgError = document.getElementById("msgErrorAuth");
+
+  if (!passIngresada) {
+    msgError.innerText = "Ingresá la contraseña";
+    msgError.style.display = "block";
+    return;
+  }
+
+  // Consulta el valor de la clave 'admin_password' en variables_globales
+  const { data, error } = await supabase
+    .from('variables_globales')
+    .select('valor')
+    .eq('clave', 'admin_password')
+    .maybeSingle();
+
+  if (error || !data) {
+    msgError.innerText = "Error al verificar credenciales en la base de datos";
+    msgError.style.display = "block";
+    return;
+  }
+
+  if (String(data.valor) === passIngresada) {
+    msgError.style.display = "none";
+    sessionStorage.setItem("admin_auth", "true");
+    document.getElementById("modalAuth").classList.remove("open");
+    iniciarApp();
+  } else {
+    msgError.innerText = "Contraseña incorrecta";
+    msgError.style.display = "block";
+  }
+}
+
+function comprobarSesionLocal() {
+  if (sessionStorage.getItem("admin_auth") === "true") {
+    document.getElementById("modalAuth").classList.remove("open");
+    iniciarApp();
+  } else {
+    document.getElementById("modalAuth").classList.add("open");
+  }
+}
+
+function cerrarSesion() {
+  sessionStorage.removeItem("admin_auth");
+  window.location.reload();
+}
+
 async function iniciarApp() {
   await cargarCuatrimestreGuardado();
   await cargarVisibilidad();
@@ -356,7 +428,6 @@ async function cambiarCuatrimestre() {
 }
 
 async function cargarCuatrimestreGuardado() {
-  // ✅ Uso de maybeSingle para evitar el error HTTP 406
   const { data } = await supabase.from('variables_globales').select('valor').eq('clave', 'cuatrimestre_activo').maybeSingle();
   if (data && String(data.valor) === "2") {
     cuatrimestreActivo = "2";
@@ -544,7 +615,6 @@ async function cargarListas() {
 }
 
 async function actualizarDatos() {
-  // Consultar distribucion_aulas uniendo los datos de materias y edificios
   const { data, error } = await supabase
     .from('distribucion_aulas')
     .select(`
@@ -556,7 +626,7 @@ async function actualizarDatos() {
   if (!error && data) {
     todasLasAulas = data.map(i => ({
       ...i,
-      materia: i.materias ? i.materias.nombre : i.materia_id, // fallback si es un evento sin relación
+      materia: i.materias ? i.materias.nombre : (i.materia || 'Evento/Capacitación'),
       edificio: i.edificios ? i.edificios.nombre : '',
       horarioInicio: i.horario_inicio,
       horarioFin: i.horario_fin
@@ -724,7 +794,6 @@ async function guardar() {
 
   if (!aulas.length || !listaHorarios.length) return alert("Completá aulas y horarios");
 
-  // 1. Obtener materia_id y carrera_id a partir del nombre seleccionado
   let materia_id = null;
   let carrera_id = null;
 
@@ -736,7 +805,6 @@ async function guardar() {
     }
   }
 
-  // 2. Obtener edificio_id a partir del nombre del edificio
   const { data: edifData } = await supabase
     .from('edificios')
     .select('id')
@@ -745,7 +813,6 @@ async function guardar() {
 
   const edificio_id = edifData ? edifData.id : null;
 
-  // 3. Mapear los registros con las columnas exactas de distribucion_aulas
   const registros = [];
   aulas.forEach(aula => {
     listaHorarios.forEach(h => {
@@ -765,7 +832,6 @@ async function guardar() {
     });
   });
 
-  // 4. Enviar a Supabase
   const { error } = await supabase.from('distribucion_aulas').upsert(registros);
 
   if (error) {
@@ -790,6 +856,8 @@ async function eliminarGrupo(ids) {
   }
 }
 
+window.verificarPassword = verificarPassword;
+window.cerrarSesion = cerrarSesion;
 window.cambiarCuatrimestre = cambiarCuatrimestre;
 window.guardarVisibilidadCategoria = guardarVisibilidadCategoria;
 window.toggleCategoria = toggleCategoria;
@@ -805,7 +873,7 @@ window.eliminarGrupo = eliminarGrupo;
 window.renderTablas = renderTablas;
 
 window.onload = () => {
-  iniciarApp();
+  comprobarSesionLocal();
 };
 </script>
 </body>
