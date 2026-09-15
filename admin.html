@@ -351,13 +351,13 @@ async function cambiarCuatrimestre() {
   document.getElementById('cuatri1-section').classList.toggle('oculto', cuatrimestreActivo !== "1");
   document.getElementById('cuatri2-section').classList.toggle('oculto', cuatrimestreActivo !== "2");
 
-  await supabase.from('configuracion').upsert({ clave: 'cuatrimestre_activo', valor: cuatrimestreActivo });
+  await supabase.from('variables_globales').upsert({ clave: 'cuatrimestre_activo', valor: cuatrimestreActivo });
   renderTablas();
 }
 
 async function cargarCuatrimestreGuardado() {
-  const { data } = await supabase.from('configuracion').select('valor').eq('clave', 'cuatrimestre_activo').single();
-  if (data && data.valor === "2") {
+  const { data } = await supabase.from('variables_globales').select('valor').eq('clave', 'cuatrimestre_activo').single();
+  if (data && String(data.valor) === "2") {
     cuatrimestreActivo = "2";
     document.getElementById('swCuatri').classList.add('cuatri2');
     document.getElementById('cuatri1-section').classList.add('oculto');
@@ -373,19 +373,19 @@ async function cargarVisibilidad() {
     "EVENTO/CAPACITACIÓN": "vis-EVENTO",
     "EVENTO": "vis-EVENTO"
   };
-  const { data } = await supabase.from('configuracion').select('*');
+  const { data } = await supabase.from('config_categorias').select('*');
   if (data) {
     data.forEach(row => {
-      const checkId = MAPEO[row.clave];
+      const checkId = MAPEO[row.categoria];
       if (checkId && document.getElementById(checkId)) {
-        document.getElementById(checkId).checked = row.valor === 'true' || row.valor === true;
+        document.getElementById(checkId).checked = row.visible === true || String(row.visible).toLowerCase() === 'true';
       }
     });
   }
 }
 
 async function guardarVisibilidadCategoria(categoria, visible) {
-  await supabase.from('configuracion').upsert({ clave: categoria, valor: String(visible) });
+  await supabase.from('config_categorias').upsert({ categoria, visible });
 }
 
 function agruparPorClave(registros) {
@@ -502,7 +502,9 @@ async function cargarListas() {
   try {
     const { data: materias } = await supabase.from('materias').select('*');
     listaMateriasCompleta = materias || [];
-    const carreras = [...new Set(listaMateriasCompleta.map(m => m.carrera).filter(Boolean))].sort();
+
+    const { data: carrerasData } = await supabase.from('carreras').select('nombre');
+    const carreras = carrerasData ? carrerasData.map(c => c.nombre).sort() : [];
 
     document.querySelectorAll('.select-carreras-filter').forEach(sel => {
       const valActual = sel.value;
@@ -541,7 +543,7 @@ async function cargarListas() {
 }
 
 async function actualizarDatos() {
-  const { data, error } = await supabase.from('aulas').select('*');
+  const { data, error } = await supabase.from('distribucion_aulas').select('*');
   if (!error && data) {
     todasLasAulas = data.map(i => ({
       ...i,
@@ -580,8 +582,8 @@ function renderTablas() {
     i.categoria === "CLASE_REGULAR" && filtrarItemPorFiltros(i, fDiaCR, fCarCR, fEdCR)
   );
 
-  const cr1 = agruparPorClave(crFiltradas.filter(i => i.cuatrimestre === "1"));
-  const cr2 = agruparPorClave(crFiltradas.filter(i => i.cuatrimestre === "2"));
+  const cr1 = agruparPorClave(crFiltradas.filter(i => String(i.cuatrimestre) === "1"));
+  const cr2 = agruparPorClave(crFiltradas.filter(i => String(i.cuatrimestre) === "2"));
 
   const fDiaEX = document.getElementById('filter-dia-EXAMEN')?.value || "TODOS";
   const fCarEX = document.getElementById('filter-carrera-EXAMEN')?.value || "TODOS";
@@ -728,7 +730,7 @@ async function guardar() {
     });
   });
 
-  const { error } = await supabase.from('aulas').upsert(registros);
+  const { error } = await supabase.from('distribucion_aulas').upsert(registros);
 
   if (error) {
     alert("Error al guardar en Supabase: " + error.message);
@@ -743,7 +745,7 @@ async function eliminarGrupo(ids) {
   if (!confirm("¿Eliminar registro(s)?")) return;
   const listaIds = String(ids).split(",");
   
-  const { error } = await supabase.from('aulas').delete().in('id', listaIds);
+  const { error } = await supabase.from('distribucion_aulas').delete().in('id', listaIds);
 
   if (error) {
     alert("Error al eliminar: " + error.message);
@@ -752,7 +754,6 @@ async function eliminarGrupo(ids) {
   }
 }
 
-// Binds globales para invocaciones desde eventos inline del DOM
 window.cambiarCuatrimestre = cambiarCuatrimestre;
 window.guardarVisibilidadCategoria = guardarVisibilidadCategoria;
 window.toggleCategoria = toggleCategoria;
