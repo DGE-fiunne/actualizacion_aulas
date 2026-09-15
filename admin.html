@@ -543,14 +543,32 @@ function filtrarMateriasPorCuatrimestre() {
   const categoria = document.getElementById('categoria').value;
   const selectMateria = document.getElementById('materia');
   const carreraSelec = document.getElementById('carrera') ? document.getElementById('carrera').value : "TODAS";
+  const cuatriSelec = document.getElementById('cuatrimestre') ? document.getElementById('cuatrimestre').value : "1";
+
   selectMateria.innerHTML = "";
-  
-  listaMateriasCompleta.forEach(mat => {
-    const coincideCuatri = categoria !== "CLASE_REGULAR" || mat.cuatrimestre === document.getElementById('cuatrimestre').value;
-    const coincideCarrera = carreraSelec === "TODAS" || mat.carrera === carreraSelec;
-    if (coincideCuatri && coincideCarrera) {
-      selectMateria.innerHTML += `<option>${mat.nombre}</option>`;
+
+  // Filtrar la lista completa de materias
+  const materiasFiltradas = listaMateriasCompleta.filter(mat => {
+    // 1. Validar Cuatrimestre (Solo aplica a Clases Regulares)
+    const coincideCuatri = (categoria !== "CLASE_REGULAR" || String(mat.cuatrimestre) === String(cuatriSelec));
+
+    // 2. Validar Carrera (Compara por nombre de carrera o por ID)
+    let coincideCarrera = true;
+    if (carreraSelec !== "TODAS") {
+      const nombreCarreraMat = mat.carrera || (mat.carreras ? mat.carreras.nombre : "");
+      coincideCarrera = (nombreCarreraMat === carreraSelec || String(mat.carrera_id) === String(carreraSelec));
     }
+
+    return coincideCuatri && coincideCarrera;
+  });
+
+  if (materiasFiltradas.length === 0) {
+    selectMateria.innerHTML = `<option value="">Sin materias para la carrera/cuatrimestre seleccionados</option>`;
+    return;
+  }
+
+  materiasFiltradas.forEach(mat => {
+    selectMateria.innerHTML += `<option value="${mat.nombre}">${mat.nombre}</option>`;
   });
 }
 
