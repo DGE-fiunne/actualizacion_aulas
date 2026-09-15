@@ -359,7 +359,6 @@ let todasLasAulas = [];
 let listaMateriasCompleta = [];
 let cuatrimestreActivo = "1";
 
-// --- VALIDACIÓN DE CONTRASEÑA ---
 async function verificarPassword() {
   const passIngresada = document.getElementById("passInput").value.trim();
   const msgError = document.getElementById("msgErrorAuth");
@@ -370,7 +369,6 @@ async function verificarPassword() {
     return;
   }
 
-  // Consulta el valor de la clave 'admin_password' en variables_globales
   const { data, error } = await supabase
     .from('variables_globales')
     .select('valor')
@@ -450,14 +448,26 @@ async function cargarVisibilidad() {
     data.forEach(row => {
       const checkId = MAPEO[row.categoria];
       if (checkId && document.getElementById(checkId)) {
-        document.getElementById(checkId).checked = row.visible === true || String(row.visible).toLowerCase() === 'true';
+        document.getElementById(checkId).checked = (row.visible === true || String(row.visible).toLowerCase() === 'true');
       }
     });
   }
 }
 
+// ✅ CORRECCIÓN DE LA FUNCIÓN DE GUARDADO DE VISIBILIDAD EN SUPABASE
 async function guardarVisibilidadCategoria(categoria, visible) {
-  await supabase.from('config_categorias').upsert({ categoria, visible });
+  try {
+    const { error } = await supabase
+      .from('config_categorias')
+      .upsert({ categoria: categoria, visible: visible }, { onConflict: 'categoria' });
+
+    if (error) {
+      console.error("Error al guardar visibilidad:", error.message);
+      alert("No se pudo guardar el estado del interruptor: " + error.message);
+    }
+  } catch (err) {
+    console.error("Error de conexión al guardar visibilidad:", err);
+  }
 }
 
 function agruparPorClave(registros) {
