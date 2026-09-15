@@ -669,13 +669,20 @@
       document.body.classList.add('updating');
 
       try {
-        const { data: materiasData, error: errMaterias } = await supabase.from('distribucion_aulas').select('*');
+        // Consulta JOIN para obtener nombres de materias y edificios mediante sus IDs
+        const { data: materiasData, error: errMaterias } = await supabase
+          .from('distribucion_aulas')
+          .select(`
+            *,
+            materias (nombre),
+            edificios (nombre)
+          `);
+
         if (errMaterias) throw errMaterias;
 
         const { data: configCatData, error: errConfigCat } = await supabase.from('config_categorias').select('*');
         if (errConfigCat) throw errConfigCat;
 
-        // ✅ Uso de maybeSingle para evitar el error HTTP 406
         const { data: varData } = await supabase.from('variables_globales').select('valor').eq('clave', 'cuatrimestre_activo').maybeSingle();
 
         const configObj = {};
@@ -687,16 +694,22 @@
 
         const cuatriActivo = varData ? String(varData.valor) : "1";
 
-        const materiasMapeadas = (materiasData || []).map(m => ({
-          id: m.id,
-          dia: m.dia,
-          materia: m.materia,
-          edificio: m.edificio,
-          aula: m.aula,
-          horario: m.horario || `${m.horario_inicio || ''} - ${m.horario_fin || ''}`,
-          tipo: m.categoria,
-          cuatrimestre: m.cuatrimestre
-        }));
+        const materiasMapeadas = (materiasData || []).map(m => {
+          // Extraer nombre de la materia o usar el ID/texto si es un evento
+          const nombreMateria = m.materias ? m.materias.nombre : (m.materia || 'Evento/Capacitación');
+          const nombreEdificio = m.edificios ? m.edificios.nombre : '';
+
+          return {
+            id: m.id,
+            dia: m.dia,
+            materia: nombreMateria,
+            edificio: nombreEdificio,
+            aula: m.aula,
+            horario: m.horario || `${m.horario_inicio || ''} - ${m.horario_fin || ''}`,
+            tipo: m.categoria,
+            cuatrimestre: m.cuatrimestre
+          };
+        });
 
         datosCache = {
           config: configObj,
