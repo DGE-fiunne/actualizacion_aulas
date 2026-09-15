@@ -397,7 +397,7 @@
       <img src="https://iili.io/ndEnhRj.md.png" alt="Logo">
       <div class="titulo" id="txt-header">Distribución de Aulas</div>
     </div>
-    <div id="loader">&#8635</div>
+    <div id="loader">&#10004</div>
     
     <div style="display: flex; align-items: center; gap: 12px;">
       <button class="btn-config" onclick="abrirModalAdmin()" title="Acceso Administrador">
@@ -413,14 +413,14 @@
       <div class="panel-seccion">
         <div class="filter-group">
           <label>Categoría</label>
-          <select id="fTipo" onchange="renderizarUI(datosCache)">
+          <select id="fTipo">
             <option value="TODOS">Todas las categorías</option>
           </select>
         </div>
 
         <div class="filter-group">
           <label>Día</label>
-          <select id="fDia" onchange="renderizarUI(datosCache)">
+          <select id="fDia">
             <option value="TODOS">Todos los días</option>
             <option value="Lunes">Lunes</option>
             <option value="Martes">Martes</option>
@@ -433,7 +433,7 @@
 
         <div class="filter-group">
           <label>Edificio</label>
-          <select id="fEdif" onchange="renderizarUI(datosCache)">
+          <select id="fEdif">
             <option value="TODOS">Todos los edificios</option>
             <option value="Central - Av. Las Heras">Central - Av. Las Heras</option>
             <option value="Electromecánica - Av. Castelli">Electromecánica - Av. Castelli</option>
@@ -442,7 +442,7 @@
 
         <div class="filter-group">
           <label>Turno</label>
-          <select id="fTurno" onchange="renderizarUI(datosCache)">
+          <select id="fTurno">
             <option value="TODOS">Todos los turnos</option>
             <option value="MAÑANA">Mañana</option>
             <option value="TARDE">Tarde / Noche </option>
@@ -486,7 +486,9 @@
   <script type="module">
     import { supabase } from './supabaseClient.js';
 
-    let datosCache = null;
+    let datosProcesados = [];
+    let configGlobal = {};
+    let cuatriActivoGlobal = "1";
 
     function actualizarReloj() {
       const ahora = new Date();
@@ -495,19 +497,6 @@
       let m = ahora.getMinutes().toString().padStart(2, "0");
       let s = ahora.getSeconds().toString().padStart(2, "0");
       document.getElementById("reloj").innerHTML = `${dias[ahora.getDay()]} ${h}:${m}:${s}`;
-    }
-
-    function cumpleTurno(horarioStr, turnoFiltro) {
-      if (turnoFiltro === "TODOS" || !horarioStr) return true;
-      const match = horarioStr.match(/(\d{1,2}):(\d{2})/);
-      if (!match) return false;
-      const h = parseInt(match[1]);
-      const min = parseInt(match[2]);
-      const totalMinutos = h * 60 + min;
-
-      if (turnoFiltro === "MAÑANA") return (totalMinutos >= 450 && totalMinutos <= 810);
-      if (turnoFiltro === "TARDE") return (totalMinutos > 810 && totalMinutos <= 1380);
-      return true;
     }
 
     function minutosAHHMM(min) {
@@ -524,10 +513,23 @@
       return { inicio: Math.min(...minutos), fin: Math.max(...minutos) };
     }
 
-    function agruparMaterias(lista) {
+    function cumpleTurno(horarioStr, turnoFiltro) {
+      if (turnoFiltro === "TODOS" || !horarioStr) return true;
+      const match = horarioStr.match(/(\d{1,2}):(\d{2})/);
+      if (!match) return false;
+      const h = parseInt(match[1]);
+      const min = parseInt(match[2]);
+      const totalMinutos = h * 60 + min;
+
+      if (turnoFiltro === "MAÑANA") return (totalMinutos >= 450 && totalMinutos <= 810);
+      if (turnoFiltro === "TARDE") return (totalMinutos > 810 && totalMinutos <= 1380);
+      return true;
+    }
+
+    function procesarYAgruparDatos(lista) {
       const agrupado = {};
+
       lista.forEach(item => {
-        // Clave única que separa por materia, día, edificio, tipo y su horario específico
         const clave = `${item.materia}-${item.dia}-${item.edificio}-${item.tipo}-${item.horario}`;
         const rango = extraerRangoHorario(item.horario);
 
@@ -545,32 +547,22 @@
         }
       });
 
-      return Object.values(agrupado).map(m => ({
-        ...m,
-        aulaFormateada: m.aulas.sort().join(" - "),
-        horario: (m.horaInicio !== null && m.horaFin !== null)
-          ? `${minutosAHHMM(m.horaInicio)} - ${minutosAHHMM(m.horaFin)}`
-          : m.horario
-      }));
-    }
-
-    function filtrarMaterias(lista, tSelTipo, dSel, eSel, tSel) {
-      return lista.filter(m =>
-        (tSelTipo === "TODOS" || m.tipo === tSelTipo) &&
-        (eSel === "TODOS" || m.edificio === eSel) &&
-        (dSel === "TODOS" || m.dia === dSel) &&
-        cumpleTurno(m.horario, tSel)
-      );
-    }
-
-    function ordenarMaterias(lista) {
       const ordenDias = { "Lunes": 1, "Martes": 2, "Miércoles": 3, "Jueves": 4, "Viernes": 5, "Sábado": 6, "Domingo": 7 };
-      return lista.sort((a, b) => {
-        const dA = ordenDias[a.dia] || 99;
-        const dB = ordenDias[b.dia] || 99;
-        if (dA !== dB) return dA - dB;
-        return (a.horaInicio ?? 0) - (b.horaInicio ?? 0);
-      });
+
+      return Object.values(agrupado)
+        .map(m => ({
+          ...m,
+          aulaFormateada: m.aulas.sort().join(" - "),
+          horarioTexto: (m.horaInicio !== null && m.horaFin !== null)
+            ? `${minutosAHHMM(m.horaInicio)} - ${minutosAHHMM(m.horaFin)}`
+            : m.horario
+        }))
+        .sort((a, b) => {
+          const dA = ordenDias[a.dia] || 99;
+          const dB = ordenDias[b.dia] || 99;
+          if (dA !== dB) return dA - dB;
+          return (a.horaInicio ?? 0) - (b.horaInicio ?? 0);
+        });
     }
 
     function obtenerEstiloTipo(tipo) {
@@ -587,14 +579,34 @@
       }
     }
 
-    function renderizarFilas(tbody, materiasAgrupadas) {
-      if (materiasAgrupadas.length === 0) {
+    function aplicarFiltros() {
+      const tSelTipo = document.getElementById("fTipo").value;
+      const dSel = document.getElementById("fDia").value;
+      const eSel = document.getElementById("fEdif").value;
+      const tSel = document.getElementById("fTurno").value;
+
+      const elemHeader = document.getElementById("txt-header");
+      if (elemHeader) {
+        const textoCuatri = cuatriActivoGlobal ? ` (${cuatriActivoGlobal}° Cuatrimestre)` : "";
+        const textoEdificio = eSel === "TODOS" ? "" : ` - ${eSel}`;
+        elemHeader.innerText = `Distribución de Aulas${textoCuatri}${textoEdificio}`;
+      }
+
+      const filtradas = datosProcesados.filter(m =>
+        (tSelTipo === "TODOS" || m.tipo === tSelTipo) &&
+        (eSel === "TODOS" || m.edificio === eSel) &&
+        (dSel === "TODOS" || m.dia === dSel) &&
+        cumpleTurno(m.horario, tSel)
+      );
+
+      const tbody = document.getElementById("tabAulas");
+
+      if (filtradas.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="sin-resultados">No hay asignaciones para los filtros seleccionados.</td></tr>`;
         return;
       }
 
-      // Generación fluida del HTML en una sola asignación
-      const htmlRows = materiasAgrupadas.map(m => {
+      const html = filtradas.map(m => {
         const estilo = obtenerEstiloTipo(m.tipo);
         return `
           <tr>
@@ -607,18 +619,15 @@
             <td><span class="${estilo.claseBadge}">${estilo.textoBadge}</span></td>
             <td><span class="edificio-texto">${m.edificio}</span></td>
             <td><span class="${estilo.claseAula}">AULA ${m.aulaFormateada}</span></td>
-            <td><span class="horario-texto">${m.horario}</span></td>
+            <td><span class="horario-texto">${m.horarioTexto}</span></td>
           </tr>`;
       }).join("");
 
-      tbody.innerHTML = htmlRows;
+      tbody.innerHTML = html;
     }
 
     function armarFiltroTipo(config) {
       const sel = document.getElementById("fTipo");
-      const valorActual = sel.value;
-      
-      // Evita reconstruir el menú si ya fue poblado previamente
       if (sel.options.length > 1) return;
 
       sel.innerHTML = `<option value="TODOS">Todas las categorías</option>`;
@@ -626,35 +635,6 @@
       if (config.EXAMEN !== false) sel.innerHTML += `<option value="EXAMEN">Exámenes</option>`;
       if (config.CONTRACURSADA !== false) sel.innerHTML += `<option value="CONTRACURSADA">Contracursadas</option>`;
       if (config["EVENTO/CAPACITACIÓN"] !== false && config.EVENTO !== false) sel.innerHTML += `<option value="EVENTO/CAPACITACIÓN">Eventos / Capacitaciones</option>`;
-
-      if ([...sel.options].some(o => o.value === valorActual)) {
-        sel.value = valorActual;
-      }
-    }
-
-    function renderizarUI(res) {
-      if (!res) return;
-
-      const hayAlgoHabilitado = Object.values(res.config).some(v => v === true);
-      document.getElementById("cont-aulas").style.display = hayAlgoHabilitado ? "block" : "none";
-      if (!hayAlgoHabilitado) return;
-
-      const tSelTipo = document.getElementById("fTipo").value;
-      const dSel = document.getElementById("fDia").value;
-      const eSel = document.getElementById("fEdif").value;
-      const tSel = document.getElementById("fTurno").value;
-
-      const elemHeader = document.getElementById("txt-header");
-      if (elemHeader) {
-        const textoCuatri = res.cuatrimestreActivo ? ` (${res.cuatrimestreActivo}° Cuatrimestre)` : "";
-        const textoEdificio = eSel === "TODOS" ? "" : ` - ${eSel}`;
-        elemHeader.innerText = `Distribución de Aulas${textoCuatri}${textoEdificio}`;
-      }
-
-      const filtradas = filtrarMaterias(res.materias, tSelTipo, dSel, eSel, tSel);
-      const agrupadas = ordenarMaterias(agruparMaterias(filtradas));
-
-      renderizarFilas(document.getElementById("tabAulas"), agrupadas);
     }
 
     async function cargar() {
@@ -671,44 +651,38 @@
 
         if (errMaterias) throw errMaterias;
 
-        const { data: configCatData, error: errConfigCat } = await supabase.from('config_categorias').select('*');
-        if (errConfigCat) throw errConfigCat;
-
+        const { data: configCatData } = await supabase.from('config_categorias').select('*');
         const { data: varData } = await supabase.from('variables_globales').select('valor').eq('clave', 'cuatrimestre_activo').maybeSingle();
 
-        const configObj = {};
+        configGlobal = {};
         if (configCatData) {
           configCatData.forEach(row => {
-            configObj[row.categoria] = row.visible === true || String(row.visible).toLowerCase() === 'true';
+            configGlobal[row.categoria] = row.visible === true || String(row.visible).toLowerCase() === 'true';
           });
         }
 
-        const cuatriActivo = varData ? String(varData.valor) : "1";
+        cuatriActivoGlobal = varData ? String(varData.valor) : "1";
 
-        const materiasMapeadas = (materiasData || []).map(m => {
-          const nombreMateria = m.materias ? m.materias.nombre : (m.materia || 'Evento/Capacitación');
-          const nombreEdificio = m.edificios ? m.edificios.nombre : '';
+        const materiasMapeadas = (materiasData || []).map(m => ({
+          id: m.id,
+          dia: m.dia,
+          materia: m.materias ? m.materias.nombre : (m.materia || 'Evento/Capacitación'),
+          edificio: m.edificios ? m.edificios.nombre : '',
+          aula: m.aula,
+          horario: m.horario || `${m.horario_inicio || ''} - ${m.horario_fin || ''}`,
+          tipo: m.categoria,
+          cuatrimestre: m.cuatrimestre
+        }));
 
-          return {
-            id: m.id,
-            dia: m.dia,
-            materia: nombreMateria,
-            edificio: nombreEdificio,
-            aula: m.aula,
-            horario: m.horario || `${m.horario_inicio || ''} - ${m.horario_fin || ''}`,
-            tipo: m.categoria,
-            cuatrimestre: m.cuatrimestre
-          };
-        });
+        datosProcesados = procesarYAgruparDatos(materiasMapeadas);
 
-        datosCache = {
-          config: configObj,
-          cuatrimestreActivo: cuatriActivo,
-          materias: materiasMapeadas
-        };
+        const hayAlgoHabilitado = Object.values(configGlobal).some(v => v === true);
+        document.getElementById("cont-aulas").style.display = hayAlgoHabilitado ? "block" : "none";
 
-        armarFiltroTipo(datosCache.config);
-        renderizarUI(datosCache);
+        if (hayAlgoHabilitado) {
+          armarFiltroTipo(configGlobal);
+          aplicarFiltros();
+        }
       } catch (err) {
         console.error("Error al cargar los datos desde Supabase:", err);
       } finally {
@@ -716,15 +690,14 @@
       }
     }
 
-    function abrirModalAdmin() {
-      window.open("./admin.html", "_blank");
-    }
+    function abrirModalAdmin() { window.open("./admin.html", "_blank"); }
+    function cerrarModalAdmin() { document.getElementById("modalAdmin").classList.remove("open"); }
 
-    function cerrarModalAdmin() {
-      document.getElementById("modalAdmin").classList.remove("open");
-    }
+    document.getElementById("fTipo").addEventListener("change", aplicarFiltros);
+    document.getElementById("fDia").addEventListener("change", aplicarFiltros);
+    document.getElementById("fEdif").addEventListener("change", aplicarFiltros);
+    document.getElementById("fTurno").addEventListener("change", aplicarFiltros);
 
-    window.renderizarUI = renderizarUI;
     window.abrirModalAdmin = abrirModalAdmin;
     window.cerrarModalAdmin = cerrarModalAdmin;
 
