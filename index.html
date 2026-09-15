@@ -574,14 +574,14 @@
       try {
         // Cargar Aulas desde Supabase
         const { data: dataAulas, error: errAulas } = await supabaseClient
-          .from('aulas')
+          .from('distribucion_aulas')
           .select('*');
 
         if (errAulas) throw errAulas;
 
         // Cargar Configuración desde Supabase
         const { data: dataConfig, error: errConfig } = await supabaseClient
-          .from('configuracion')
+          .from('distribucion_aulas')
           .select('*');
 
         if (errConfig) throw errConfig;
