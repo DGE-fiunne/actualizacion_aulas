@@ -1,16 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gestor de Aulas | Panel Administrativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-
-<!-- Supabase JS Client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
   * { box-sizing: border-box; }
   :root {
@@ -39,7 +33,6 @@
   .brand-logo { width: 60%; height: 50%; border-radius: 10px; object-fit: cover; }
   .brand-title { font-family: var(--font-display); font-weight: 700; font-size: 16px; line-height: 1.2; color: white; }
 
-  .content-col { min-width:0; }
   .main { padding:14px 16px 60px; max-width: 95%; margin:0 auto; }
   .card { background:var(--surface); padding:24px; border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:20px; border:1px solid var(--line); }
   .categorias-botones { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
@@ -101,7 +94,6 @@
   .modal-overlay.open { display:flex; }
   .modal-box { background:var(--surface); border-radius:22px; padding:26px; width:100%; max-width:620px; max-height:88vh; overflow-y:auto; }
   .modal-close-x { background:var(--line-soft); border:none; color:var(--ink-soft); cursor:pointer; width:32px; height:32px; border-radius:10px; }
-  .modal-form-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
   .aula-row, .horario-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
   #campoTituloEvento { display:none; margin-bottom:12px; }
   #campoTituloEvento.visible { display:block; }
@@ -111,31 +103,11 @@
   .cat-container.visible { display:block; }
   @keyframes fadeIn { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
 
-  #modalAuth { z-index: 2000; background: #0f172a; backdrop-filter: blur(10px); }
-  .auth-box { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 32px; width: 100%; max-width: 400px; text-align: center; color: white; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
-  .auth-box h3 { color: white; margin-bottom: 8px; font-size: 20px; }
-  .auth-box p { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
-  .auth-box input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: #111827; color: white; text-align: center; font-size: 15px; margin-bottom: 16px; outline: none; }
-  .auth-box input:focus { border-color: #22c55e; }
-  .auth-box button { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #22c55e; color: #000; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s; }
-  .auth-box button:hover { opacity: 0.9; }
-  #msgErrorAuth { color: #ef4444; font-size: 12px; margin-bottom: 12px; display: none; }
-
   @media (max-width:900px) { .categorias-botones { grid-template-columns:repeat(2,1fr); } }
   @media (max-width:600px) { .main { padding:10px 14px; } .form-grid-2 { grid-template-columns:1fr; } .top-navbar { padding:10px 16px; } }
 </style>
 </head>
 <body>
-
-  <div id="modalAuth" class="modal-overlay open">
-    <div class="auth-box">
-      <h3>⚙️ Acceso Restringido</h3>
-      <p>Ingresá la clave de administración para acceder al panel.</p>
-      <input type="password" id="passInput" placeholder="Contraseña..." onkeydown="if(event.key==='Enter') verificarPassword()">
-      <div id="msgErrorAuth">Contraseña incorrecta</div>
-      <button onclick="verificarPassword()">Ingresar al Panel</button>
-    </div>
-  </div>
 
   <header class="top-navbar">
     <div class="brand-container">
@@ -155,7 +127,6 @@
           <button class="btn-cat ev" onclick="toggleCategoria('EVENTO', this)"><span>EV</span> Eventos/Cap.</button>
         </div>
 
-        <!-- 📚 CLASES REGULARES -->
         <div id="cont-CLASE_REGULAR" class="cat-container card">
           <div class="cat-header">
             <h3 style="color:var(--purple);">📚 Clases Regulares</h3>
@@ -203,7 +174,6 @@
           </div>
         </div>
 
-        <!-- 📝 EXÁMENES -->
         <div id="cont-EXAMEN" class="cat-container card">
           <div class="cat-header">
             <h3 style="color:var(--amber);">📝 Exámenes</h3>
@@ -233,7 +203,6 @@
           </div>
         </div>
 
-        <!-- 🔄 CONTRACURSADAS -->
         <div id="cont-CONTRACURSADA" class="cat-container card">
           <div class="cat-header">
             <h3 style="color:var(--teal);">🔄 Contracursadas</h3>
@@ -263,7 +232,6 @@
           </div>
         </div>
 
-        <!-- 🎯 EVENTOS -->
         <div id="cont-EVENTO" class="cat-container card">
           <div class="cat-header">
             <h3 style="color:var(--green);">🎯 Eventos/Capacitaciones</h3>
@@ -295,7 +263,6 @@
     </div>
   </div>
 
-<!-- MODAL FORMULARIO -->
 <div id="modalForm" class="modal-overlay" onclick="if(event.target.id==='modalForm')cerrarModalForm()">
   <div class="modal-box">
     <div class="modal-form-head">
@@ -362,37 +329,18 @@
   </div>
 </div>
 
-<script>
-// Configuración de Supabase
-const SUPABASE_URL = "https://ardnucavibingeahychm.supabase.co";
-const SUPABASE_KEY = "sb_publishable_9Ca20DGAPM8bZHvGUxinaw_lUfEK4TX";
-const CLAVE_ADMIN_CORRECTA = "DGE2026"; // Reemplazar por la clave deseada
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<script type="module">
+import { supabase } from './supabaseClient.js';
 
 let todasLasAulas = [];
 let listaMateriasCompleta = [];
 let cuatrimestreActivo = "1";
-let visibilidadCache = {};
 
-function verificarPassword() {
-  const pass = document.getElementById("passInput").value;
-  const msgError = document.getElementById("msgErrorAuth");
-
-  if (pass === CLAVE_ADMIN_CORRECTA) {
-    document.getElementById("modalAuth").classList.remove("open");
-    iniciarApp();
-  } else {
-    msgError.innerText = "Contraseña incorrecta";
-    msgError.style.display = "block";
-  }
-}
-
-function iniciarApp() {
-  cargarCuatrimestreGuardado();
-  cargarVisibilidadDesdeSupabase();
-  cargarListas();
-  actualizarDatos();
+async function iniciarApp() {
+  await cargarCuatrimestreGuardado();
+  await cargarVisibilidad();
+  await cargarListas();
+  await actualizarDatos();
 }
 
 async function cambiarCuatrimestre() {
@@ -403,20 +351,12 @@ async function cambiarCuatrimestre() {
   document.getElementById('cuatri1-section').classList.toggle('oculto', cuatrimestreActivo !== "1");
   document.getElementById('cuatri2-section').classList.toggle('oculto', cuatrimestreActivo !== "2");
 
-  await supabaseClient
-    .from('variable_globales')
-    .upsert({ clave: 'cuatrimestre_activo', valor: cuatrimestreActivo });
-
+  await supabase.from('configuracion').upsert({ clave: 'cuatrimestre_activo', valor: cuatrimestreActivo });
   renderTablas();
 }
 
 async function cargarCuatrimestreGuardado() {
-  const { data } = await supabaseClient
-    .from('variable_globales')
-    .select('valor')
-    .eq('clave', 'cuatrimestre_activo')
-    .single();
-
+  const { data } = await supabase.from('configuracion').select('valor').eq('clave', 'cuatrimestre_activo').single();
   if (data && data.valor === "2") {
     cuatrimestreActivo = "2";
     document.getElementById('swCuatri').classList.add('cuatri2');
@@ -425,37 +365,27 @@ async function cargarCuatrimestreGuardado() {
   }
 }
 
-async function cargarVisibilidadDesdeSupabase() {
-  const MAPEO_CHECKBOX = {
+async function cargarVisibilidad() {
+  const MAPEO = {
     "CLASE_REGULAR": "vis-CLASE_REGULAR",
     "EXAMEN": "vis-EXAMEN",
     "CONTRACURSADA": "vis-CONTRACURSADA",
     "EVENTO/CAPACITACIÓN": "vis-EVENTO",
     "EVENTO": "vis-EVENTO"
   };
-
-  const { data } = await supabaseClient
-    .from('configuracion')
-    .select('valor')
-    .eq('clave', 'visibilidad_categorias')
-    .single();
-
-  if (data && data.valor) {
-    visibilidadCache = data.valor;
-    Object.keys(visibilidadCache).forEach(cat => {
-      const checkId = MAPEO_CHECKBOX[cat];
+  const { data } = await supabase.from('configuracion').select('*');
+  if (data) {
+    data.forEach(row => {
+      const checkId = MAPEO[row.clave];
       if (checkId && document.getElementById(checkId)) {
-        document.getElementById(checkId).checked = visibilidadCache[cat];
+        document.getElementById(checkId).checked = row.valor === 'true' || row.valor === true;
       }
     });
   }
 }
 
 async function guardarVisibilidadCategoria(categoria, visible) {
-  visibilidadCache[categoria] = visible;
-  await supabaseClient
-    .from('configuracion')
-    .upsert({ clave: 'visibilidad_categorias', valor: visibilidadCache });
+  await supabase.from('configuracion').upsert({ clave: categoria, valor: String(visible) });
 }
 
 function agruparPorClave(registros) {
@@ -465,13 +395,13 @@ function agruparPorClave(registros) {
     if (!grupos[clave]) {
       grupos[clave] = {
         ids: [], dia: item.dia, materia: item.materia, edificio: item.edificio,
-        cuatrimestre: item.cuatrimestre, carrera: item.carrera, aulas: new Set(), horarios: []
+        cuatrimestre: item.cuatrimestre, aulas: new Set(), horarios: []
       };
     }
     grupos[clave].ids.push(item.id);
     grupos[clave].aulas.add(item.aula);
-    if (item.horario_inicio && item.horario_fin) {
-      grupos[clave].horarios.push(`${item.horario_inicio} - ${item.horario_fin}`);
+    if (item.horarioInicio && item.horarioFin) {
+      grupos[clave].horarios.push(`${item.horarioInicio} - ${item.horarioFin}`);
     }
   });
   return Object.values(grupos);
@@ -484,8 +414,6 @@ function filaVacia(texto) {
 function crearFila(grupo) {
   const aulasTexto = [...grupo.aulas].join(" - ");
   const horariosTexto = grupo.horarios.join("<br>");
-  const idsParam = grupo.ids.join(",");
-  
   return `<tr>
     <td>${grupo.dia}</td>
     <td><b>${grupo.materia || ""}</b></td>
@@ -493,8 +421,8 @@ function crearFila(grupo) {
     <td style="font-family:var(--font-mono); font-size:12px;">${horariosTexto}</td>
     <td>${grupo.edificio}</td>
     <td>
-      <button class="btn btn-edit" onclick="prepararEdicion('${idsParam}')">✏️</button>
-      <button class="btn btn-del" onclick="eliminarGrupo('${idsParam}')">✕</button>
+      <button class="btn btn-edit" onclick="prepararEdicion('${grupo.ids[0]}')">✏️</button>
+      <button class="btn btn-del" onclick="eliminarGrupo('${grupo.ids.join("','")}')">✕</button>
     </td>
   </tr>`;
 }
@@ -572,10 +500,10 @@ function addHorario() {
 
 async function cargarListas() {
   try {
-    const { data: materias } = await supabaseClient.from('materias').select('*');
+    const { data: materias } = await supabase.from('materias').select('*');
     listaMateriasCompleta = materias || [];
     const carreras = [...new Set(listaMateriasCompleta.map(m => m.carrera).filter(Boolean))].sort();
-    
+
     document.querySelectorAll('.select-carreras-filter').forEach(sel => {
       const valActual = sel.value;
       sel.innerHTML = '<option value="TODOS">Todas las carreras</option>';
@@ -590,15 +518,10 @@ async function cargarListas() {
     }
 
     filtrarMateriasPorCuatrimestre();
-  } catch (err) {
-    console.error("Error al cargar materias:", err);
-  }
 
-  try {
-    const { data: edificiosData } = await supabaseClient.from('edificios').select('nombre');
-    const edificios = (edificiosData || []).map(e => e.nombre);
-
-    if (edificios.length > 0) {
+    const { data: edificiosData } = await supabase.from('edificios').select('nombre');
+    if (edificiosData && edificiosData.length > 0) {
+      const edificios = edificiosData.map(e => e.nombre);
       const s = document.getElementById('edificio');
       if (s) {
         s.innerHTML = "";
@@ -613,18 +536,19 @@ async function cargarListas() {
       });
     }
   } catch (err) {
-    console.error("Error al cargar edificios:", err);
+    console.error("Error al cargar listas de Supabase:", err);
   }
 }
 
 async function actualizarDatos() {
-  try {
-    const { data: aulas, error } = await supabaseClient.from('aulas').select('*');
-    if (error) throw error;
-    todasLasAulas = aulas || [];
+  const { data, error } = await supabase.from('aulas').select('*');
+  if (!error && data) {
+    todasLasAulas = data.map(i => ({
+      ...i,
+      horarioInicio: i.horario_inicio,
+      horarioFin: i.horario_fin
+    }));
     renderTablas();
-  } catch (err) {
-    console.error("Error al obtener aulas:", err);
   }
 }
 
@@ -646,14 +570,7 @@ function filtrarItemPorFiltros(item, fDia, fCar, fEdif) {
 }
 
 function renderTablas() {
-  if (!todasLasAulas.length) {
-    document.getElementById('tablaCuatri1').innerHTML = filaVacia("Sin asignaciones");
-    document.getElementById('tablaCuatri2').innerHTML = filaVacia("Sin asignaciones");
-    document.getElementById('tablaExamenes').innerHTML = filaVacia("Sin exámenes");
-    document.getElementById('tablaContracursadas').innerHTML = filaVacia("Sin contracursadas");
-    document.getElementById('tablaEventos').innerHTML = filaVacia("Sin eventos");
-    return;
-  }
+  if (!todasLasAulas.length) return;
 
   const fDiaCR = document.getElementById('filter-dia-CLASE_REGULAR')?.value || "TODOS";
   const fCarCR = document.getElementById('filter-carrera-CLASE_REGULAR')?.value || "TODOS";
@@ -699,12 +616,12 @@ function renderTablas() {
   document.getElementById('tablaEventos').innerHTML = ev.length ? ev.map(crearFila).join("") : filaVacia("Sin eventos");
 }
 
-function prepararEdicion(idsStr) {
-  const listaIds = String(idsStr).split(",").map(id => parseInt(id.trim()));
-  const base = todasLasAulas.find(x => listaIds.includes(x.id));
+function prepararEdicion(id) {
+  id = String(id).trim();
+  const base = todasLasAulas.find(x => String(x.id).trim() === id);
   if (!base) return alert("Registro no encontrado");
 
-  document.getElementById('idEditar').value = idsStr;
+  document.getElementById('idEditar').value = base.id;
   document.getElementById('dia').value = base.dia;
   
   let catForm = base.categoria;
@@ -717,21 +634,14 @@ function prepararEdicion(idsStr) {
     document.getElementById('cuatrimestre').value = base.cuatrimestre || "1";
   }
 
-  const selectCarrera = document.getElementById('carrera');
-  if (selectCarrera && base.carrera) {
-    selectCarrera.value = base.carrera;
-  }
-
   if (base.categoria.startsWith("EVENTO")) {
     document.getElementById('tituloEvento').value = base.materia;
   } else {
-    actualizarCamposSegunCategoria();
     setTimeout(() => {
       document.getElementById('materia').value = base.materia;
     }, 50);
   }
 
-  // Cargar Aulas
   const contenedorAulas = document.getElementById('cont-aulas');
   contenedorAulas.innerHTML = `<label class="field-label">Aula(s)</label>`;
 
@@ -749,25 +659,27 @@ function prepararEdicion(idsStr) {
     contenedorAulas.appendChild(div);
   });
 
-  // Cargar Horarios agrupando todas las filas coincidentes
   const contenedorHorarios = document.getElementById('cont-horarios');
   contenedorHorarios.innerHTML = "";
 
-  const registrosDelGrupo = todasLasAulas.filter(x => listaIds.includes(x.id));
-  
-  registrosDelGrupo.forEach((reg, idx) => {
+  let textoInicio = base.horarioInicio || "";
+  let textoFin = base.horarioFin || "";
+  let listaInicio = textoInicio.includes(" | ") ? textoInicio.split(" | ") : (textoInicio.trim() ? [textoInicio] : [""]);
+  let listaFin = textoFin.includes(" | ") ? textoFin.split(" | ") : (textoFin.trim() ? [textoFin] : [""]);
+
+  const maxFilas = Math.max(listaInicio.length, listaFin.length);
+  for (let i = 0; i < maxFilas; i++) {
+    const hi = (listaInicio[i] || "").trim();
+    const hf = (listaFin[i] || "").trim();
     const divH = document.createElement('div');
     divH.className = 'horario-row';
-    const hi = reg.horario_inicio || "";
-    const hf = reg.horario_fin || "";
-    
-    if (idx === 0) {
+    if (i === 0) {
       divH.innerHTML = `<input type="time" class="horario-inicio" value="${hi}" style="flex:1;"><span>-</span><input type="time" class="horario-fin" value="${hf}" style="flex:1;"><button class="btn" onclick="addHorario()">+ Horario</button>`;
     } else {
       divH.innerHTML = `<input type="time" class="horario-inicio" value="${hi}" style="flex:1;"><span>-</span><input type="time" class="horario-fin" value="${hf}" style="flex:1;"><button class="btn btn-del" onclick="this.parentElement.remove()">✕</button>`;
     }
     contenedorHorarios.appendChild(divH);
-  });
+  }
 
   actualizarCamposSegunCategoria();
   document.getElementById('modalFormTitulo').innerText = 'Editar Asignación';
@@ -775,14 +687,13 @@ function prepararEdicion(idsStr) {
 }
 
 async function guardar() {
-  const idsStr = document.getElementById('idEditar').value || "";
+  const id = document.getElementById('idEditar').value || null;
   const dia = document.getElementById('dia').value;
   let categoria = document.getElementById('categoria').value;
   if (categoria === "EVENTO") categoria = "EVENTO/CAPACITACIÓN";
   
   const edificio = document.getElementById('edificio').value;
   const cuatrimestre = document.getElementById('cuatrimestre') ? document.getElementById('cuatrimestre').value : "1";
-  const carrera = document.getElementById('carrera') ? document.getElementById('carrera').value : "";
   
   let materia = (categoria.startsWith("EVENTO")) ? document.getElementById('tituloEvento').value.trim() : document.getElementById('materia').value;
   if (!materia) return alert("Escribí o seleccioná una materia/evento");
@@ -800,56 +711,65 @@ async function guardar() {
 
   if (!aulas.length || !listaHorarios.length) return alert("Completá aulas y horarios");
 
-  try {
-    // Si estamos editando, eliminamos primero las filas existentes del grupo
-    if (idsStr) {
-      const listaIds = idsStr.split(",").map(id => parseInt(id.trim())).filter(Boolean);
-      await supabaseClient.from('aulas').delete().in('id', listaIds);
-    }
-
-    // Preparamos los nuevos registros desglosando por aula y horario
-    const nuevosRegistros = [];
-    aulas.forEach(aula => {
-      listaHorarios.forEach(h => {
-        nuevosRegistros.push({
-          dia,
-          materia,
-          edificio,
-          aula,
-          categoria,
-          carrera: (carrera === "TODAS" ? "" : carrera),
-          cuatrimestre,
-          horario_inicio: h.inicio,
-          horario_fin: h.fin
-        });
+  const registros = [];
+  aulas.forEach(aula => {
+    listaHorarios.forEach(h => {
+      registros.push({
+        ...(id ? { id } : {}),
+        dia,
+        materia,
+        edificio,
+        aula,
+        horario_inicio: h.inicio,
+        horario_fin: h.fin,
+        categoria,
+        cuatrimestre
       });
     });
+  });
 
-    const { error } = await supabaseClient.from('aulas').insert(nuevosRegistros);
-    if (error) throw error;
+  const { error } = await supabase.from('aulas').upsert(registros);
 
+  if (error) {
+    alert("Error al guardar en Supabase: " + error.message);
+  } else {
     await actualizarDatos();
     cerrarModalForm();
     alert("✅ Guardado correctamente");
-  } catch (err) {
-    alert("Error al guardar: " + (err.message || err));
   }
 }
 
-async function eliminarGrupo(idsStr) {
+async function eliminarGrupo(ids) {
   if (!confirm("¿Eliminar registro(s)?")) return;
-  const listaIds = String(idsStr).split(",").map(id => parseInt(id.trim())).filter(Boolean);
+  const listaIds = String(ids).split(",");
   
-  try {
-    const { error } = await supabaseClient.from('aulas').delete().in('id', listaIds);
-    if (error) throw error;
-    
+  const { error } = await supabase.from('aulas').delete().in('id', listaIds);
+
+  if (error) {
+    alert("Error al eliminar: " + error.message);
+  } else {
     await actualizarDatos();
-    alert("✅ Registros eliminados correctamente");
-  } catch (err) {
-    alert("Error al eliminar: " + (err.message || err));
   }
 }
+
+// Binds globales para invocaciones desde eventos inline del DOM
+window.cambiarCuatrimestre = cambiarCuatrimestre;
+window.guardarVisibilidadCategoria = guardarVisibilidadCategoria;
+window.toggleCategoria = toggleCategoria;
+window.abrirModalFormPorCategoria = abrirModalFormPorCategoria;
+window.actualizarCamposSegunCategoria = actualizarCamposSegunCategoria;
+window.filtrarMateriasPorCuatrimestre = filtrarMateriasPorCuatrimestre;
+window.cerrarModalForm = cerrarModalForm;
+window.addAula = addAula;
+window.addHorario = addHorario;
+window.prepararEdicion = prepararEdicion;
+window.guardar = guardar;
+window.eliminarGrupo = eliminarGrupo;
+window.renderTablas = renderTablas;
+
+window.onload = () => {
+  iniciarApp();
+};
 </script>
 </body>
 </html>
