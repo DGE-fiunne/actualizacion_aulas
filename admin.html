@@ -544,10 +544,20 @@ async function cargarListas() {
 }
 
 async function actualizarDatos() {
-  const { data, error } = await supabase.from('distribucion_aulas').select('*');
+  // Consultar distribucion_aulas uniendo los datos de materias y edificios
+  const { data, error } = await supabase
+    .from('distribucion_aulas')
+    .select(`
+      *,
+      materias (nombre),
+      edificios (nombre)
+    `);
+
   if (!error && data) {
     todasLasAulas = data.map(i => ({
       ...i,
+      materia: i.materias ? i.materias.nombre : i.materia_id, // fallback si es un evento sin relación
+      edificio: i.edificios ? i.edificios.nombre : '',
       horarioInicio: i.horario_inicio,
       horarioFin: i.horario_fin
     }));
@@ -695,11 +705,11 @@ async function guardar() {
   let categoria = document.getElementById('categoria').value;
   if (categoria === "EVENTO") categoria = "EVENTO/CAPACITACIÓN";
   
-  const edificio = document.getElementById('edificio').value;
+  const nombreEdificio = document.getElementById('edificio').value;
   const cuatrimestre = document.getElementById('cuatrimestre') ? document.getElementById('cuatrimestre').value : "1";
   
-  let materia = (categoria.startsWith("EVENTO")) ? document.getElementById('tituloEvento').value.trim() : document.getElementById('materia').value;
-  if (!materia) return alert("Escribí o seleccioná una materia/evento");
+  let materiaTexto = (categoria.startsWith("EVENTO")) ? document.getElementById('tituloEvento').value.trim() : document.getElementById('materia').value;
+  if (!materiaTexto) return alert("Escribí o seleccioná una materia/evento");
 
   const aulas = Array.from(document.querySelectorAll('.aula-in')).map(i => i.value.trim()).filter(Boolean);
 
@@ -714,23 +724,48 @@ async function guardar() {
 
   if (!aulas.length || !listaHorarios.length) return alert("Completá aulas y horarios");
 
+  // 1. Obtener materia_id y carrera_id a partir del nombre seleccionado
+  let materia_id = null;
+  let carrera_id = null;
+
+  if (!categoria.startsWith("EVENTO")) {
+    const matObj = listaMateriasCompleta.find(m => m.nombre === materiaTexto);
+    if (matObj) {
+      materia_id = matObj.id;
+      carrera_id = matObj.carrera_id || null;
+    }
+  }
+
+  // 2. Obtener edificio_id a partir del nombre del edificio
+  const { data: edifData } = await supabase
+    .from('edificios')
+    .select('id')
+    .eq('nombre', nombreEdificio)
+    .maybeSingle();
+
+  const edificio_id = edifData ? edifData.id : null;
+
+  // 3. Mapear los registros con las columnas exactas de distribucion_aulas
   const registros = [];
   aulas.forEach(aula => {
     listaHorarios.forEach(h => {
       registros.push({
         ...(id ? { id } : {}),
         dia,
-        materia,
-        edificio,
+        categoria,
+        cuatrimestre,
+        materia_id,
+        carrera_id,
+        edificio_id,
         aula,
         horario_inicio: h.inicio,
         horario_fin: h.fin,
-        categoria,
-        cuatrimestre
+        visible: true
       });
     });
   });
 
+  // 4. Enviar a Supabase
   const { error } = await supabase.from('distribucion_aulas').upsert(registros);
 
   if (error) {
