@@ -527,7 +527,8 @@
     function agruparMaterias(lista) {
       const agrupado = {};
       lista.forEach(item => {
-        const clave = `${item.materia}-${item.dia}-${item.edificio}-${item.tipo}`;
+        // Clave única que separa por materia, día, edificio, tipo y su horario específico
+        const clave = `${item.materia}-${item.dia}-${item.edificio}-${item.tipo}-${item.horario}`;
         const rango = extraerRangoHorario(item.horario);
 
         if (!agrupado[clave]) {
@@ -540,14 +541,6 @@
         } else {
           if (item.aula && !agrupado[clave].aulas.includes(item.aula)) {
             agrupado[clave].aulas.push(item.aula);
-          }
-          if (rango) {
-            if (agrupado[clave].horaInicio === null || rango.inicio < agrupado[clave].horaInicio) {
-              agrupado[clave].horaInicio = rango.inicio;
-            }
-            if (agrupado[clave].horaFin === null || rango.fin > agrupado[clave].horaFin) {
-              agrupado[clave].horaFin = rango.fin;
-            }
           }
         }
       });
@@ -595,18 +588,15 @@
     }
 
     function renderizarFilas(tbody, materiasAgrupadas) {
-      tbody.innerHTML = "";
-
       if (materiasAgrupadas.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="sin-resultados">No hay asignaciones para los filtros seleccionados.</td></tr>`;
         return;
       }
 
-      materiasAgrupadas.forEach(m => {
+      // Generación fluida del HTML en una sola asignación
+      const htmlRows = materiasAgrupadas.map(m => {
         const estilo = obtenerEstiloTipo(m.tipo);
-        const aulaHTML = `<span class="${estilo.claseAula}">AULA ${m.aulaFormateada}</span>`;
-
-        const fila = `
+        return `
           <tr>
             <td>
               <div class="materia-info">
@@ -616,18 +606,22 @@
             </td>
             <td><span class="${estilo.claseBadge}">${estilo.textoBadge}</span></td>
             <td><span class="edificio-texto">${m.edificio}</span></td>
-            <td>${aulaHTML}</td>
+            <td><span class="${estilo.claseAula}">AULA ${m.aulaFormateada}</span></td>
             <td><span class="horario-texto">${m.horario}</span></td>
           </tr>`;
-        tbody.innerHTML += fila;
-      });
+      }).join("");
+
+      tbody.innerHTML = htmlRows;
     }
 
     function armarFiltroTipo(config) {
       const sel = document.getElementById("fTipo");
       const valorActual = sel.value;
-      sel.innerHTML = `<option value="TODOS">Todas las categorías</option>`;
       
+      // Evita reconstruir el menú si ya fue poblado previamente
+      if (sel.options.length > 1) return;
+
+      sel.innerHTML = `<option value="TODOS">Todas las categorías</option>`;
       if (config.CLASE_REGULAR !== false) sel.innerHTML += `<option value="CLASE_REGULAR">Clases Regulares</option>`;
       if (config.EXAMEN !== false) sel.innerHTML += `<option value="EXAMEN">Exámenes</option>`;
       if (config.CONTRACURSADA !== false) sel.innerHTML += `<option value="CONTRACURSADA">Contracursadas</option>`;
@@ -644,8 +638,6 @@
       const hayAlgoHabilitado = Object.values(res.config).some(v => v === true);
       document.getElementById("cont-aulas").style.display = hayAlgoHabilitado ? "block" : "none";
       if (!hayAlgoHabilitado) return;
-
-      armarFiltroTipo(res.config);
 
       const tSelTipo = document.getElementById("fTipo").value;
       const dSel = document.getElementById("fDia").value;
@@ -669,7 +661,6 @@
       document.body.classList.add('updating');
 
       try {
-        // Consulta JOIN para obtener nombres de materias y edificios mediante sus IDs
         const { data: materiasData, error: errMaterias } = await supabase
           .from('distribucion_aulas')
           .select(`
@@ -695,7 +686,6 @@
         const cuatriActivo = varData ? String(varData.valor) : "1";
 
         const materiasMapeadas = (materiasData || []).map(m => {
-          // Extraer nombre de la materia o usar el ID/texto si es un evento
           const nombreMateria = m.materias ? m.materias.nombre : (m.materia || 'Evento/Capacitación');
           const nombreEdificio = m.edificios ? m.edificios.nombre : '';
 
@@ -717,6 +707,7 @@
           materias: materiasMapeadas
         };
 
+        armarFiltroTipo(datosCache.config);
         renderizarUI(datosCache);
       } catch (err) {
         console.error("Error al cargar los datos desde Supabase:", err);
