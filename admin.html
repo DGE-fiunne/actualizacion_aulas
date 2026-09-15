@@ -803,7 +803,7 @@ function prepararEdicion(idsGrupoStr) {
 }
 
 async function guardar() {
-  const id = document.getElementById('idEditar').value || null;
+  const idEditar = document.getElementById('idEditar').value || null;
   const dia = document.getElementById('dia').value;
   let categoria = document.getElementById('categoria').value;
   if (categoria === "EVENTO") categoria = "EVENTO/CAPACITACIÓN";
@@ -846,11 +846,34 @@ async function guardar() {
 
   const edificio_id = edifData ? edifData.id : null;
 
-  const registros = [];
+  // 1. Si se trata de una edición, buscamos los registros anteriores de ese grupo y los eliminamos
+  if (idEditar) {
+    const registroBase = todasLasAulas.find(x => String(x.id).trim() === String(idEditar).trim());
+    if (registroBase) {
+      // Identificar todos los IDs que pertenecen a este mismo grupo
+      const idsGrupo = todasLasAulas
+        .filter(x => 
+          x.dia === registroBase.dia &&
+          x.materia === registroBase.materia &&
+          x.edificio === registroBase.edificio &&
+          String(x.cuatrimestre || '') === String(registroBase.cuatrimestre || '')
+        )
+        .map(x => x.id);
+
+      if (idsGrupo.length > 0) {
+        const { error: errDel } = await supabase.from('distribucion_aulas').delete().in('id', idsGrupo);
+        if (errDel) {
+          return alert("Error al actualizar registros anteriores: " + errDel.message);
+        }
+      }
+    }
+  }
+
+  // 2. Preparamos el nuevo arreglo de registros sin 'id' duplicado para hacer un INSERT limpio
+  const registrosNuevos = [];
   aulas.forEach(aula => {
     listaHorarios.forEach(h => {
-      registros.push({
-        ...(id ? { id } : {}),
+      registrosNuevos.push({
         dia,
         categoria,
         cuatrimestre,
@@ -865,7 +888,8 @@ async function guardar() {
     });
   });
 
-  const { error } = await supabase.from('distribucion_aulas').upsert(registros);
+  // 3. Insertar los nuevos datos en Supabase
+  const { error } = await supabase.from('distribucion_aulas').insert(registrosNuevos);
 
   if (error) {
     alert("Error al guardar en Supabase: " + error.message);
