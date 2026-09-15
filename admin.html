@@ -493,9 +493,11 @@ function filaVacia(texto) {
   return `<tr class="empty-row"><td colspan="6">${texto}</td></tr>`;
 }
 
-function crearFila(grupo) {
+unction crearFila(grupo) {
   const aulasTexto = [...grupo.aulas].join(" - ");
   const horariosTexto = grupo.horarios.join("<br>");
+  const idsParam = grupo.ids.join(",");
+
   return `<tr>
     <td>${grupo.dia}</td>
     <td><b>${grupo.materia || ""}</b></td>
@@ -503,8 +505,8 @@ function crearFila(grupo) {
     <td style="font-family:var(--font-mono); font-size:12px;">${horariosTexto}</td>
     <td>${grupo.edificio}</td>
     <td>
-      <button class="btn btn-edit" onclick="prepararEdicion('${grupo.ids[0]}')">✏️</button>
-      <button class="btn btn-del" onclick="eliminarGrupo('${grupo.ids.join("','")}')">✕</button>
+      <button class="btn btn-edit" onclick="prepararEdicion('${idsParam}')">✏️</button>
+      <button class="btn btn-del" onclick="eliminarGrupo('${idsParam}')">✕</button>
     </td>
   </tr>`;
 }
@@ -709,12 +711,19 @@ function renderTablas() {
   document.getElementById('tablaEventos').innerHTML = ev.length ? ev.map(crearFila).join("") : filaVacia("Sin eventos");
 }
 
-function prepararEdicion(id) {
-  id = String(id).trim();
-  const base = todasLasAulas.find(x => String(x.id).trim() === id);
-  if (!base) return alert("Registro no encontrado");
+unction prepararEdicion(idsGrupoStr) {
+  if (!idsGrupoStr) return alert("Registro no encontrado");
 
-  document.getElementById('idEditar').value = base.id;
+  // Obtener la lista de IDs que pertenecen a este grupo
+  const listaIds = String(idsGrupoStr).split(",").map(id => id.trim());
+  
+  // Buscar todos los registros correspondientes en memoria
+  const registrosGrupo = todasLasAulas.filter(x => listaIds.includes(String(x.id).trim()));
+  if (!registrosGrupo.length) return alert("Registros no encontrados");
+
+  const base = registrosGrupo[0];
+
+  document.getElementById('idEditar').value = base.id; // Se conserva el ID base para el guardar/upsert
   document.getElementById('dia').value = base.dia;
   
   let catForm = base.categoria;
@@ -735,23 +744,37 @@ function prepararEdicion(id) {
     }, 50);
   }
 
+  // Extraer TODAS las aulas asignadas a este grupo
+  const conjuntoAulas = new Set();
+  registrosGrupo.forEach(reg => {
+    if (reg.aula) {
+      // Si el texto contiene ' - ', se separan; de lo contrario se agrega directamente
+      reg.aula.split(" - ").forEach(a => {
+        if (a.trim()) conjuntoAulas.add(a.trim());
+      });
+    }
+  });
+
+  const listaAulas = Array.from(conjuntoAulas);
+  if (listaAulas.length === 0) listaAulas.push("");
+
+  // Renderizar cada aula en su propia fila de entrada dentro del modal
   const contenedorAulas = document.getElementById('cont-aulas');
   contenedorAulas.innerHTML = `<label class="field-label">Aula(s)</label>`;
-
-  let textoAulas = base.aula || "";
-  let listaAulas = textoAulas.includes(" - ") ? textoAulas.split(" - ") : (textoAulas.trim() ? [textoAulas] : [""]);
 
   listaAulas.forEach((aula, idx) => {
     const div = document.createElement('div');
     div.className = 'aula-row';
+    const aulaEscapada = aula.replace(/"/g, '&quot;');
     if (idx === 0) {
-      div.innerHTML = `<input class="aula-in" value="${aula.trim().replace(/"/g, '&quot;')}" placeholder="Ej: 101" style="flex:1;"><button class="btn" onclick="addAula()">+ Agregar</button>`;
+      div.innerHTML = `<input class="aula-in" value="${aulaEscapada}" placeholder="Ej: 101" style="flex:1;"><button class="btn" onclick="addAula()">+ Agregar</button>`;
     } else {
-      div.innerHTML = `<input class="aula-in" value="${aula.trim().replace(/"/g, '&quot;')}" placeholder="Ej: 101" style="flex:1;"><button class="btn btn-del" onclick="this.parentElement.remove()">✕</button>`;
+      div.innerHTML = `<input class="aula-in" value="${aulaEscapada}" placeholder="Ej: 101" style="flex:1;"><button class="btn btn-del" onclick="this.parentElement.remove()">✕</button>`;
     }
     contenedorAulas.appendChild(div);
   });
 
+  // Extraer los horarios del grupo
   const contenedorHorarios = document.getElementById('cont-horarios');
   contenedorHorarios.innerHTML = "";
 
