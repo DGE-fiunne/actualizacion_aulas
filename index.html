@@ -579,6 +579,16 @@
       }
     }
 
+    function esCategoriaVisibleEnAdmin(tipo) {
+      if (tipo === "CLASE_REGULAR") return configGlobal.CLASE_REGULAR !== false;
+      if (tipo === "EXAMEN") return configGlobal.EXAMEN !== false;
+      if (tipo === "CONTRACURSADA") return configGlobal.CONTRACURSADA !== false;
+      if (tipo.startsWith("EVENTO")) {
+        return configGlobal["EVENTO/CAPACITACIÓN"] !== false && configGlobal.EVENTO !== false;
+      }
+      return true;
+    }
+
     function aplicarFiltros() {
       const tSelTipo = document.getElementById("fTipo").value;
       const dSel = document.getElementById("fDia").value;
@@ -592,14 +602,18 @@
         elemHeader.innerText = `Distribución de Aulas${textoCuatri}${textoEdificio}`;
       }
 
-      // ✅ FILTRADO EXCLUSIVO PARA CLASE_REGULAR
+      // ✅ FILTRADO INTEGRO: EVALÚA VISIBILIDAD ADMIN, CUATRIMESTRE Y FILTROS DEL USUARIO
       const filtradas = datosProcesados.filter(m => {
+        // 1. Ocultar inmediatamente si el administrador apagó el interruptor
+        if (!esCategoriaVisibleEnAdmin(m.tipo)) return false;
+
+        // 2. Filtros elegidos por el usuario en pantalla
         const cumpleTipo = (tSelTipo === "TODOS" || m.tipo === tSelTipo);
         const cumpleEdif = (eSel === "TODOS" || m.edificio === eSel);
         const cumpleDia  = (dSel === "TODOS" || m.dia === dSel);
         const cumpleTur  = cumpleTurno(m.horario, tSel);
 
-        // El filtro de cuatrimestre SOLAMENTE evalúa a las materias de categoría CLASE_REGULAR
+        // 3. Cuatrimestre solo evaluado para Clases Regulares
         let cumpleCuatri = true;
         if (m.tipo === "CLASE_REGULAR") {
           cumpleCuatri = (!m.cuatrimestre || String(m.cuatrimestre) === String(cuatriActivoGlobal));
@@ -635,15 +649,22 @@
       tbody.innerHTML = html;
     }
 
+    // ✅ REGENERA EL DESPLEGABLE MOSTRANDO SOLAMENTE CATEGORÍAS ACTIVAS
     function armarFiltroTipo(config) {
       const sel = document.getElementById("fTipo");
-      if (sel.options.length > 1) return;
+      const valAnt = sel.value;
 
       sel.innerHTML = `<option value="TODOS">Todas las categorías</option>`;
       if (config.CLASE_REGULAR !== false) sel.innerHTML += `<option value="CLASE_REGULAR">Clases Regulares</option>`;
       if (config.EXAMEN !== false) sel.innerHTML += `<option value="EXAMEN">Exámenes</option>`;
       if (config.CONTRACURSADA !== false) sel.innerHTML += `<option value="CONTRACURSADA">Contracursadas</option>`;
       if (config["EVENTO/CAPACITACIÓN"] !== false && config.EVENTO !== false) sel.innerHTML += `<option value="EVENTO/CAPACITACIÓN">Eventos / Capacitaciones</option>`;
+
+      if ([...sel.options].some(o => o.value === valAnt)) {
+        sel.value = valAnt;
+      } else {
+        sel.value = "TODOS";
+      }
     }
 
     async function cargar() {
