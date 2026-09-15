@@ -669,30 +669,33 @@
       document.body.classList.add('updating');
 
       try {
-        const { data: materiasData, error: errMaterias } = await supabase.from('aulas').select('*');
+        // Consulta a distribucion_aulas
+        const { data: materiasData, error: errMaterias } = await supabase.from('distribucion_aulas').select('*');
         if (errMaterias) throw errMaterias;
 
-        const { data: configData, error: errConfig } = await supabase.from('configuracion').select('*');
-        if (errConfig) throw errConfig;
+        // Consulta a config_categorias
+        const { data: configCatData, error: errConfigCat } = await supabase.from('config_categorias').select('*');
+        if (errConfigCat) throw errConfigCat;
+
+        // Consulta a variables_globales para cuatrimestre_activo
+        const { data: varData, error: errVar } = await supabase.from('variables_globales').select('*').eq('clave', 'cuatrimestre_activo').single();
 
         const configObj = {};
-        let cuatriActivo = "1";
+        if (configCatData) {
+          configCatData.forEach(row => {
+            configObj[row.categoria] = row.visible === true || String(row.visible).toLowerCase() === 'true';
+          });
+        }
 
-        configData.forEach(row => {
-          if (row.clave === 'cuatrimestre_activo') {
-            cuatriActivo = row.valor;
-          } else {
-            configObj[row.clave] = row.valor === 'true' || row.valor === true;
-          }
-        });
+        const cuatriActivo = varData ? String(varData.valor) : "1";
 
-        const materiasMapeadas = materiasData.map(m => ({
+        const materiasMapeadas = (materiasData || []).map(m => ({
           id: m.id,
           dia: m.dia,
           materia: m.materia,
           edificio: m.edificio,
           aula: m.aula,
-          horario: m.horario || `${m.horario_inicio} - ${m.horario_fin}`,
+          horario: m.horario || `${m.horario_inicio || ''} - ${m.horario_fin || ''}`,
           tipo: m.categoria,
           cuatrimestre: m.cuatrimestre
         }));
