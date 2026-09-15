@@ -404,7 +404,7 @@ async function cambiarCuatrimestre() {
   document.getElementById('cuatri2-section').classList.toggle('oculto', cuatrimestreActivo !== "2");
 
   await supabaseClient
-    .from('configuracion')
+    .from('variable_globales')
     .upsert({ clave: 'cuatrimestre_activo', valor: cuatrimestreActivo });
 
   renderTablas();
@@ -412,7 +412,7 @@ async function cambiarCuatrimestre() {
 
 async function cargarCuatrimestreGuardado() {
   const { data } = await supabaseClient
-    .from('configuracion')
+    .from('variable_globales')
     .select('valor')
     .eq('clave', 'cuatrimestre_activo')
     .single();
