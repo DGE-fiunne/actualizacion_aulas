@@ -547,16 +547,15 @@ function filtrarMateriasPorCuatrimestre() {
 
   selectMateria.innerHTML = "";
 
-  // Filtrar la lista completa de materias
   const materiasFiltradas = listaMateriasCompleta.filter(mat => {
-    // 1. Validar Cuatrimestre (Solo aplica a Clases Regulares)
-    const coincideCuatri = (categoria !== "CLASE_REGULAR" || String(mat.cuatrimestre) === String(cuatriSelec));
+    // 1. Si es Clase Regular, evalúa el cuatrimestre; si es otra categoría (Examen, Contracursada), lo ignora
+    const coincideCuatri = (categoria !== "CLASE_REGULAR" || String(mat.cuatrimestre || '') === String(cuatriSelec));
 
-    // 2. Validar Carrera (Compara por nombre de carrera o por ID)
+    // 2. Compara el nombre de la carrera asignada
     let coincideCarrera = true;
     if (carreraSelec !== "TODAS") {
-      const nombreCarreraMat = mat.carrera || (mat.carreras ? mat.carreras.nombre : "");
-      coincideCarrera = (nombreCarreraMat === carreraSelec || String(mat.carrera_id) === String(carreraSelec));
+      const nombreCarrera = mat.carrera || (mat.carreras ? mat.carreras.nombre : "");
+      coincideCarrera = (nombreCarrera === carreraSelec);
     }
 
     return coincideCuatri && coincideCarrera;
@@ -602,8 +601,18 @@ function addHorario() {
 
 async function cargarListas() {
   try {
-    const { data: materias } = await supabase.from('materias').select('*');
-    listaMateriasCompleta = materias || [];
+    // ✅ Se incluye la relación con la tabla 'carreras' para obtener su nombre
+    const { data: materias, error: errMat } = await supabase
+      .from('materias')
+      .select('*, carreras(nombre)');
+
+    if (errMat) console.error("Error al cargar materias:", errMat);
+
+    // Mapeamos para garantizar que cada materia tenga la propiedad 'carrera' accesible
+    listaMateriasCompleta = (materias || []).map(m => ({
+      ...m,
+      carrera: m.carreras ? m.carreras.nombre : (m.carrera || '')
+    }));
 
     const { data: carrerasData } = await supabase.from('carreras').select('nombre');
     const carreras = carrerasData ? carrerasData.map(c => c.nombre).sort() : [];
