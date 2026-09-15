@@ -592,15 +592,18 @@
         elemHeader.innerText = `Distribución de Aulas${textoCuatri}${textoEdificio}`;
       }
 
-      // ✅ FILTRADO POR CUATRIMESTRE ACTIVO
+      // ✅ FILTRADO EXCLUSIVO PARA CLASE_REGULAR
       const filtradas = datosProcesados.filter(m => {
         const cumpleTipo = (tSelTipo === "TODOS" || m.tipo === tSelTipo);
         const cumpleEdif = (eSel === "TODOS" || m.edificio === eSel);
         const cumpleDia  = (dSel === "TODOS" || m.dia === dSel);
         const cumpleTur  = cumpleTurno(m.horario, tSel);
 
-        // Si la materia tiene asignado un cuatrimestre, debe coincidir con el activo
-        const cumpleCuatri = (!m.cuatrimestre || String(m.cuatrimestre) === String(cuatriActivoGlobal));
+        // El filtro de cuatrimestre SOLAMENTE evalúa a las materias de categoría CLASE_REGULAR
+        let cumpleCuatri = true;
+        if (m.tipo === "CLASE_REGULAR") {
+          cumpleCuatri = (!m.cuatrimestre || String(m.cuatrimestre) === String(cuatriActivoGlobal));
+        }
 
         return cumpleTipo && cumpleEdif && cumpleDia && cumpleTur && cumpleCuatri;
       });
