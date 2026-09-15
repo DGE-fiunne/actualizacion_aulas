@@ -669,16 +669,14 @@
       document.body.classList.add('updating');
 
       try {
-        // Consulta a distribucion_aulas
         const { data: materiasData, error: errMaterias } = await supabase.from('distribucion_aulas').select('*');
         if (errMaterias) throw errMaterias;
 
-        // Consulta a config_categorias
         const { data: configCatData, error: errConfigCat } = await supabase.from('config_categorias').select('*');
         if (errConfigCat) throw errConfigCat;
 
-        // Consulta a variables_globales para cuatrimestre_activo
-        const { data: varData, error: errVar } = await supabase.from('variables_globales').select('*').eq('clave', 'cuatrimestre_activo').single();
+        // ✅ Uso de maybeSingle para evitar el error HTTP 406
+        const { data: varData } = await supabase.from('variables_globales').select('valor').eq('clave', 'cuatrimestre_activo').maybeSingle();
 
         const configObj = {};
         if (configCatData) {
