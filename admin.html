@@ -356,7 +356,8 @@ async function cambiarCuatrimestre() {
 }
 
 async function cargarCuatrimestreGuardado() {
-  const { data } = await supabase.from('variables_globales').select('valor').eq('clave', 'cuatrimestre_activo').single();
+  // ✅ Uso de maybeSingle para evitar el error HTTP 406
+  const { data } = await supabase.from('variables_globales').select('valor').eq('clave', 'cuatrimestre_activo').maybeSingle();
   if (data && String(data.valor) === "2") {
     cuatrimestreActivo = "2";
     document.getElementById('swCuatri').classList.add('cuatri2');
