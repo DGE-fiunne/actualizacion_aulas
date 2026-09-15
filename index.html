@@ -1,14 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-  
-  <!-- Supabase JS Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     * { box-sizing: border-box; }
@@ -303,6 +299,95 @@
       border-color: var(--accent-green);
       transform: rotate(30deg);
     }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+    .modal-box h3 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      color: var(--text-main);
+    }
+
+    .modal-box p {
+      margin: 0 0 16px 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .modal-box input[type="password"] {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .modal-box input[type="password"]:focus {
+      border-color: var(--accent-green);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-modal {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      border: none;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn-modal-confirm {
+      background: var(--accent-green);
+      color: #000;
+    }
+
+    .btn-modal-confirm:hover { opacity: 0.9; }
+
+    .btn-modal-cancel {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-modal-cancel:hover { background: rgba(255, 255, 255, 0.05); }
+
+    #msgErrorAdmin {
+      color: #ef4444;
+      font-size: 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -383,11 +468,23 @@
     </div>
   </div>
 
-  <script>
-    // Configuración de Supabase
-    const SUPABASE_URL = "https://ardnucavibingeahychm.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_9Ca20DGAPM8bZHvGUxinaw_lUfEK4TX";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  <div id="modalAdmin" class="modal-overlay">
+    <div class="modal-box">
+      <h3>⚙️ Acceso Administrador</h3>
+      <p>Ingresá la contraseña para acceder al panel de gestión.</p>
+      
+      <input type="password" id="passAdminInput" placeholder="Contraseña..." onkeydown="if(event.key==='Enter') abrirModalAdmin()">
+      <div id="msgErrorAdmin">Contraseña incorrecta</div>
+      
+      <div class="modal-buttons">
+        <button class="btn-modal btn-modal-cancel" onclick="cerrarModalAdmin()">Cancelar</button>
+        <button class="btn-modal btn-modal-confirm" onclick="abrirModalAdmin()">Ingresar</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from './supabaseClient.js';
 
     let datosCache = null;
 
@@ -572,48 +669,38 @@
       document.body.classList.add('updating');
 
       try {
-        // Cargar Aulas desde Supabase
-        const { data: dataAulas, error: errAulas } = await supabaseClient
-          .from('distribucion_aulas')
-          .select('*');
+        const { data: materiasData, error: errMaterias } = await supabase.from('aulas').select('*');
+        if (errMaterias) throw errMaterias;
 
-        if (errAulas) throw errAulas;
-
-        // Cargar Configuración desde Supabase
-        const { data: dataConfig, error: errConfig } = await supabaseClient
-          .from('distribucion_aulas')
-          .select('*');
-
+        const { data: configData, error: errConfig } = await supabase.from('configuracion').select('*');
         if (errConfig) throw errConfig;
 
+        const configObj = {};
         let cuatriActivo = "1";
-        let visibilidad = {
-          "CLASE_REGULAR": true,
-          "EXAMEN": true,
-          "CONTRACURSADA": true,
-          "EVENTO/CAPACITACIÓN": true
-        };
 
-        dataConfig.forEach(item => {
-          if (item.clave === 'cuatrimestre_activo') cuatriActivo = item.valor;
-          if (item.clave === 'visibilidad_categorias') visibilidad = item.valor;
+        configData.forEach(row => {
+          if (row.clave === 'cuatrimestre_activo') {
+            cuatriActivo = row.valor;
+          } else {
+            configObj[row.clave] = row.valor === 'true' || row.valor === true;
+          }
         });
 
-        // Adaptar los resultados al formato esperado por la interfaz
-        const materiasFormateadas = (dataAulas || []).map(item => ({
-          materia: item.materia,
-          dia: item.dia,
-          edificio: item.edificio,
-          aula: item.aula,
-          tipo: item.categoria,
-          horario: (item.horario_inicio && item.horario_fin) ? `${item.horario_inicio} - ${item.horario_fin}` : '',
-          cuatrimestre: item.cuatrimestre
+        const materiasMapeadas = materiasData.map(m => ({
+          id: m.id,
+          dia: m.dia,
+          materia: m.materia,
+          edificio: m.edificio,
+          aula: m.aula,
+          horario: m.horario || `${m.horario_inicio} - ${m.horario_fin}`,
+          tipo: m.categoria,
+          cuatrimestre: m.cuatrimestre
         }));
 
         datosCache = {
+          config: configObj,
           cuatrimestreActivo: cuatriActivo,
-          config: visibilidad,
-          materias: materiasFormateadas
+          materias: materiasMapeadas
         };
 
         renderizarUI(datosCache);
@@ -624,6 +711,18 @@
       }
     }
 
+    function abrirModalAdmin() {
+      window.open("./admin.html", "_blank");
+    }
+
+    function cerrarModalAdmin() {
+      document.getElementById("modalAdmin").classList.remove("open");
+    }
+
+    window.renderizarUI = renderizarUI;
+    window.abrirModalAdmin = abrirModalAdmin;
+    window.cerrarModalAdmin = cerrarModalAdmin;
+
     window.onload = () => {
       actualizarReloj();
       setInterval(actualizarReloj, 1000);
@@ -631,10 +730,6 @@
       cargar();
       setInterval(cargar, 15000);
     };
-
-    function abrirModalAdmin() {
-      window.open("admin.html", "_blank");
-    }
   </script>
 </body>
 </html>
